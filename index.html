@@ -320,8 +320,8 @@
         <div id="ballCount">Balls: 0/6</div>
     </div>
     <div id="instructions">
-        <p>Use mouse to move the bat left/right</p>
-        <p>Click or press SPACE to swing the bat</p>
+        <p>Use Mouse to move the bat left/right</p>
+        <p>Press SPACE to swing the bat</p>
     </div>
     <button id="swingButton">SWING!</button>
 
@@ -368,11 +368,20 @@
             'fast': 0.2
         };
 
+        // Define pitch lengths and their probabilities
+        let pitchLengths = {
+            'yorker': 0.2,     // Pitches very close to batsman
+            'full': 0.2,       // Pitches closer to batsman
+            'good': 0.4,       // Pitches at optimal "good length"
+            'short': 0.2       // Pitches closer to bowler, bounces higher
+        };
+        let currentPitchLength = 'good'; // Default pitch length
+
         // Ball trajectory visualization variables
         let trajectoryPoints = []; // Array to store trajectory points
         let trajectoryLine = null; // Line object for trajectory visualization
         let trajectoryMaxPoints = 100; // Maximum number of points to track
-        let boundaryRadius = 14; // Radius of the boundary circle
+        let boundaryRadius = 18; // Radius of the boundary circle (increased from 14)
         let boundaryLine = null; // Reference to boundary line object
         let fourLine = null; // Reference to the 4-run line
         let sixLine = null; // Reference to the 6-run line
@@ -400,7 +409,10 @@
         function init() {
             // Create scene
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x87CEEB); // Sky blue
+
+            // Create dynamic sky with gradient
+            const skyTexture = createSkyGradient();
+            scene.background = skyTexture;
 
             // Create camera
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -410,6 +422,8 @@
             // Create renderer
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             document.body.appendChild(renderer.domElement);
 
             // Add lights
@@ -418,6 +432,9 @@
 
             const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
             directionalLight.position.set(1, 1, 1);
+            directionalLight.castShadow = true;
+            directionalLight.shadow.mapSize.width = 1024;
+            directionalLight.shadow.mapSize.height = 1024;
             scene.add(directionalLight);
 
             // Create cricket field
@@ -448,21 +465,76 @@
             setTimeout(startBowling, 2000);
         }
 
+        function createSkyGradient() {
+            // Create a canvas for the sky gradient
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 512;
+            const context = canvas.getContext('2d');
+
+            // Create gradient
+            const gradient = context.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, '#1e90ff');  // Dodger blue (top)
+            gradient.addColorStop(0.5, '#87ceeb'); // Sky blue (middle)
+            gradient.addColorStop(1, '#e0f7fa');   // Very light blue (horizon)
+
+            // Fill with gradient
+            context.fillStyle = gradient;
+            context.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Add some subtle cloud-like texture
+            for (let i = 0; i < 20; i++) {
+                const x = Math.random() * canvas.width;
+                const y = Math.random() * canvas.height * 0.7; // Keep clouds in upper part
+                const radius = Math.random() * 50 + 20;
+                const opacity = Math.random() * 0.15;
+
+                context.beginPath();
+                context.arc(x, y, radius, 0, Math.PI * 2);
+                context.fillStyle = `rgba(255, 255, 255, ${opacity})`;
+                context.fill();
+            }
+
+            const texture = new THREE.CanvasTexture(canvas);
+            return texture;
+        }
+
         function createField() {
-            // Create simple cricket field
-            const fieldGeometry = new THREE.CircleGeometry(20, 32);
-            const fieldMaterial = new THREE.MeshLambertMaterial({ color: 0x7CFC00 }); // Lawn green
+            // Create enhanced cricket field with texture
+            const fieldGeometry = new THREE.CircleGeometry(20, 64); // Increase segments for smoother circle
+
+            // Create grass texture on canvas
+            const grassTexture = createGrassTexture();
+
+            const fieldMaterial = new THREE.MeshLambertMaterial({
+                map: grassTexture,
+                color: 0xaaffaa, // Light green tint
+                side: THREE.DoubleSide,
+                receiveShadow: true
+            });
+
             fieldObj = new THREE.Mesh(fieldGeometry, fieldMaterial);
             fieldObj.rotation.x = -Math.PI / 2;
             fieldObj.position.y = -0.1;
+            fieldObj.receiveShadow = true;
             scene.add(fieldObj);
 
-            // Create pitch
+            // Create pitch with improved texture
             const pitchGeometry = new THREE.PlaneGeometry(2, 10);
-            const pitchMaterial = new THREE.MeshLambertMaterial({ color: 0xD2B48C }); // Tan
+
+            // Create a canvas texture for the pitch
+            const pitchTexture = createPitchTexture();
+
+            const pitchMaterial = new THREE.MeshLambertMaterial({
+                map: pitchTexture,
+                side: THREE.DoubleSide,
+                receiveShadow: true
+            });
+
             pitchObj = new THREE.Mesh(pitchGeometry, pitchMaterial);
             pitchObj.rotation.x = -Math.PI / 2;
             pitchObj.position.y = -0.09;
+            pitchObj.receiveShadow = true;
             scene.add(pitchObj);
 
             // Add boundary lines
@@ -472,70 +544,426 @@
             addCreaseLines(-4, 3); // Bowler's end and batsman's end
         }
 
-        function createBoundaryLines() {
-            const boundaryMaterial = new THREE.LineBasicMaterial({ color: 0xFFFFFF, linewidth: 2 });
+        function createGrassTexture() {
+            // Create a canvas for grass texture
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 512;
+            const context = canvas.getContext('2d');
 
-            // Create main boundary line (circle)
-            const boundaryGeometry = new THREE.RingGeometry(boundaryRadius - 0.05, boundaryRadius, 64);
+            // Base grass color
+            context.fillStyle = '#4CAF50';
+            context.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Add horizontal grass cutting lines
+            for (let i = 0; i < canvas.height; i += 20) {
+                context.beginPath();
+                context.moveTo(0, i);
+                context.lineTo(canvas.width, i);
+                context.strokeStyle = '#388E3C';
+                context.lineWidth = 4;
+                context.globalAlpha = 0.3;
+                context.stroke();
+            }
+
+            // Add some random grass blades for texture
+            context.globalAlpha = 0.4;
+            for (let i = 0; i < 5000; i++) {
+                const x = Math.random() * canvas.width;
+                const y = Math.random() * canvas.height;
+                const length = Math.random() * 5 + 3;
+                const angle = Math.random() * Math.PI;
+
+                context.beginPath();
+                context.moveTo(x, y);
+                context.lineTo(
+                    x + Math.cos(angle) * length,
+                    y + Math.sin(angle) * length
+                );
+                context.strokeStyle = Math.random() > 0.5 ? '#81C784' : '#2E7D32';
+                context.lineWidth = 1;
+                context.stroke();
+            }
+
+            // Create circular gradient for the field
+            const gradient = context.createRadialGradient(
+                canvas.width / 2, canvas.height / 2, 50,
+                canvas.width / 2, canvas.height / 2, canvas.width / 2
+            );
+            gradient.addColorStop(0, 'rgba(0, 255, 0, 0.1)');
+            gradient.addColorStop(0.8, 'rgba(0, 100, 0, 0.1)');
+            gradient.addColorStop(1, 'rgba(0, 50, 0, 0.2)');
+
+            context.fillStyle = gradient;
+            context.globalAlpha = 0.5;
+            context.fillRect(0, 0, canvas.width, canvas.height);
+
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            texture.repeat.set(5, 5); // Repeat the texture
+
+            return texture;
+        }
+
+        function createPitchTexture() {
+            // Create a canvas for pitch texture
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 512;
+            const context = canvas.getContext('2d');
+
+            // Base pitch color (light tan)
+            context.fillStyle = '#D2B48C';
+            context.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Add some grain texture
+            context.globalAlpha = 0.3;
+            for (let i = 0; i < 5000; i++) {
+                const x = Math.random() * canvas.width;
+                const y = Math.random() * canvas.height;
+                const size = Math.random() * 2 + 1;
+
+                context.fillStyle = Math.random() > 0.5 ? '#C19A6B' : '#E6D2B5';
+                context.fillRect(x, y, size, size);
+            }
+
+            // Add wear marks in the middle of the pitch
+            context.globalAlpha = 0.2;
+            const gradient = context.createRadialGradient(
+                canvas.width / 2, canvas.height / 2, 10,
+                canvas.width / 2, canvas.height / 2, 80
+            );
+            gradient.addColorStop(0, '#8B4513');
+            gradient.addColorStop(1, 'transparent');
+
+            context.fillStyle = gradient;
+            context.fillRect(0, canvas.height / 3, canvas.width, canvas.height / 3);
+
+            const texture = new THREE.CanvasTexture(canvas);
+            return texture;
+        }
+
+        function createBoundaryLines() {
+            // Create main boundary line with enhanced visuals - only one boundary line per cricket rules
+            const boundaryGeometry = new THREE.RingGeometry(boundaryRadius - 0.15, boundaryRadius, 128);
+
+            // Create a textured material for the boundary - traditional white rope
+            const boundaryTexture = createBoundaryTexture();
+
             boundaryLine = new THREE.Mesh(boundaryGeometry, new THREE.MeshBasicMaterial({
+                map: boundaryTexture,
                 color: 0xFFFFFF,
-                side: THREE.DoubleSide
+                side: THREE.DoubleSide,
+                transparent: true,
+                opacity: 0.9
             }));
             boundaryLine.rotation.x = -Math.PI / 2;
             boundaryLine.position.y = -0.08;
             scene.add(boundaryLine);
 
-            // Create the 4-run boundary line (smaller circle)
-            const fourRadius = 10;
-            const fourGeometry = new THREE.RingGeometry(fourRadius - 0.05, fourRadius, 64);
-            fourLine = new THREE.Mesh(fourGeometry, new THREE.MeshBasicMaterial({
-                color: 0x00FF00,
-                opacity: 0.5,
-                transparent: true,
-                side: THREE.DoubleSide
-            }));
-            fourLine.rotation.x = -Math.PI / 2;
-            fourLine.position.y = -0.085;
-            scene.add(fourLine);
+            // Create a glowing effect for the boundary
+            const boundaryGlow = createGlowingBoundary(boundaryRadius);
+            scene.add(boundaryGlow);
 
-            // Add text labels for boundary lines
-            addBoundaryLabels();
+            // Add "BOUNDARY" label for clarity
+            addBoundaryLabel();
         }
 
-        function addBoundaryLabels() {
-            // Create a canvas for the 4-run label
-            const canvas4 = document.createElement('canvas');
-            const context4 = canvas4.getContext('2d');
-            canvas4.width = 128;
-            canvas4.height = 64;
-            context4.fillStyle = 'white';
-            context4.font = 'bold 28px Arial';
-            context4.fillText('FOUR', 20, 40);
+        function createBoundaryTexture() {
+            // Create a canvas for the boundary texture
+            const canvas = document.createElement('canvas');
+            canvas.width = 1024;
+            canvas.height = 64;
+            const context = canvas.getContext('2d');
+
+            // Create a textured rope-like boundary
+            const ropeSegments = 60;
+            const segmentWidth = canvas.width / ropeSegments;
+
+            // Add rope texture
+            context.fillStyle = '#F5F5F5'; // White/off-white base
+            context.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Add rope fiber textures
+            context.globalAlpha = 0.4;
+            for (let i = 0; i < 2000; i++) {
+                const x = Math.random() * canvas.width;
+                const y = Math.random() * canvas.height;
+                const length = Math.random() * 20 + 5;
+                const angle = Math.random() * 0.2 - 0.1 + Math.PI / 2; // Mostly horizontal fibers
+
+                context.beginPath();
+                context.moveTo(x, y);
+                context.lineTo(
+                    x + Math.cos(angle) * length,
+                    y + Math.sin(angle) * length
+                );
+                context.strokeStyle = Math.random() > 0.3 ? '#E5E5E5' : '#D5D5D5';
+                context.lineWidth = Math.random() * 2 + 0.5;
+                context.stroke();
+            }
+
+            // Add subtle rope coils
+            for (let i = 0; i < ropeSegments; i++) {
+                context.globalAlpha = 0.2;
+                context.beginPath();
+                context.moveTo(i * segmentWidth, 0);
+                context.lineTo(i * segmentWidth, canvas.height);
+                context.strokeStyle = '#CCCCCC';
+                context.lineWidth = 1;
+                context.stroke();
+
+                // Add shadow/highlight to create 3D rope effect
+                if (i % 2 === 0) {
+                    context.globalAlpha = 0.1;
+                    context.fillStyle = '#FFFFFF';
+                    context.fillRect(i * segmentWidth, 0, segmentWidth / 2, canvas.height);
+
+                    context.globalAlpha = 0.1;
+                    context.fillStyle = '#AAAAAA';
+                    context.fillRect(i * segmentWidth + segmentWidth / 2, 0, segmentWidth / 2, canvas.height);
+                }
+            }
+
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.repeat.set(4, 1);
+
+            return texture;
+        }
+
+        function createGlowingBoundary(radius) {
+            // Create a slightly larger ring for the glow effect
+            const glowGeometry = new THREE.RingGeometry(radius - 0.2, radius + 0.2, 128);
+            const glowMaterial = new THREE.MeshBasicMaterial({
+                color: 0xFFFFFF,
+                transparent: true,
+                opacity: 0.2,
+                side: THREE.DoubleSide
+            });
+
+            const glowRing = new THREE.Mesh(glowGeometry, glowMaterial);
+            glowRing.rotation.x = -Math.PI / 2;
+            glowRing.position.y = -0.079;
+
+            // Add animation for the glow
+            const glowAnimation = () => {
+                if (glowRing) {
+                    glowRing.material.opacity = 0.1 + Math.sin(Date.now() * 0.002) * 0.1;
+                }
+                requestAnimationFrame(glowAnimation);
+            };
+            glowAnimation();
+
+            return glowRing;
+        }
+
+        function addBoundaryLabel() {
+            // Create a single boundary label in the appropriate place
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.width = 256;
+            canvas.height = 64;
+
+            // Create a gradient background
+            const gradient = context.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, '#0066CC');  // Royal blue
+            gradient.addColorStop(1, '#003366');  // Dark blue
+
+            // Draw a rounded rectangle
+            context.fillStyle = gradient;
+            drawRoundedRect(context, 0, 0, canvas.width, canvas.height, 12);
+            context.fill();
+
+            // Add stroke
+            context.strokeStyle = 'white';
+            context.lineWidth = 3;
+            drawRoundedRect(context, 0, 0, canvas.width, canvas.height, 12);
+            context.stroke();
+
+            // Add text
+            context.fillStyle = 'white';
+            context.font = 'bold 32px Arial';
+            context.textAlign = 'center';
+            context.textBaseline = 'middle';
+            context.fillText('BOUNDARY', canvas.width / 2, canvas.height / 2);
 
             // Create texture from canvas
-            const texture4 = new THREE.CanvasTexture(canvas4);
-            const material4 = new THREE.SpriteMaterial({ map: texture4 });
-            const label4 = new THREE.Sprite(material4);
-            label4.position.set(0, 0.1, 10);
-            label4.scale.set(2, 1, 1);
-            scene.add(label4);
+            const texture = new THREE.CanvasTexture(canvas);
+            const material = new THREE.SpriteMaterial({ map: texture });
+            const boundaryLabel = new THREE.Sprite(material);
+            boundaryLabel.position.set(0, 0.5, boundaryRadius + 1);
+            boundaryLabel.scale.set(5, 1.5, 1);
+            scene.add(boundaryLabel);
+        }
 
-            // Create a canvas for the 6-run label
-            const canvas6 = document.createElement('canvas');
-            const context6 = canvas6.getContext('2d');
-            canvas6.width = 128;
-            canvas6.height = 64;
-            context6.fillStyle = 'white';
-            context6.font = 'bold 28px Arial';
-            context6.fillText('SIX', 30, 40);
+        // Helper function to draw rounded rectangles for compatibility
+        function drawRoundedRect(ctx, x, y, width, height, radius) {
+            ctx.beginPath();
+            ctx.moveTo(x + radius, y);
+            ctx.lineTo(x + width - radius, y);
+            ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+            ctx.lineTo(x + width, y + height - radius);
+            ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+            ctx.lineTo(x + radius, y + height);
+            ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+            ctx.lineTo(x, y + radius);
+            ctx.quadraticCurveTo(x, y, x + radius, y);
+            ctx.closePath();
+        }
 
-            // Create texture from canvas
-            const texture6 = new THREE.CanvasTexture(canvas6);
-            const material6 = new THREE.SpriteMaterial({ map: texture6 });
-            const label6 = new THREE.Sprite(material6);
-            label6.position.set(0, 0.1, 14);
-            label6.scale.set(2, 1, 1);
-            scene.add(label6);
+        function highlightBoundary(type) {
+            // Enhanced boundary highlighting with pulse effect
+            if (type === "four") {
+                // Create a pulsing circle at the boundary for four
+                createBoundaryPulse(boundaryRadius, 0x00FF00); // Green for four
+
+                // Add a "FOUR" text popup
+                createRunTextPopup("FOUR", 0x00FF00);
+            }
+            else if (type === "six") {
+                // Create a pulsing circle at the boundary for six
+                createBoundaryPulse(boundaryRadius, 0xFFD700); // Gold for six
+
+                // Add particle effect for six
+                createBoundaryParticles();
+
+                // Add a "SIX" text popup
+                createRunTextPopup("SIX", 0xFFD700);
+            }
+        }
+
+        function createRunTextPopup(text, color) {
+            // Create a popup text effect
+            const popup = document.createElement('div');
+            popup.style.position = 'absolute';
+            popup.style.left = '50%';
+            popup.style.top = '30%';
+            popup.style.transform = 'translate(-50%, -50%)';
+            popup.style.color = '#' + color.toString(16).padStart(6, '0');
+            popup.style.fontFamily = 'Arial, sans-serif';
+            popup.style.fontSize = '80px';
+            popup.style.fontWeight = 'bold';
+            popup.style.textShadow = '2px 2px 5px rgba(0,0,0,0.5)';
+            popup.style.opacity = '0';
+            popup.style.transition = 'all 0.5s ease-in-out';
+            popup.style.zIndex = '1000';
+            popup.textContent = text;
+
+            document.body.appendChild(popup);
+
+            // Animate the text
+            setTimeout(() => {
+                popup.style.opacity = '1';
+                popup.style.fontSize = '120px';
+
+                setTimeout(() => {
+                    popup.style.opacity = '0';
+                    popup.style.fontSize = '150px';
+
+                    setTimeout(() => {
+                        if (document.body.contains(popup)) document.body.removeChild(popup);
+                    }, 1000);
+                }, 1500);
+            }, 100);
+        }
+
+        function createBoundaryPulse(radius, color) {
+            // Create a ring that pulses outward
+            const pulseGeometry = new THREE.RingGeometry(radius - 0.05, radius + 0.05, 64);
+            const pulseMaterial = new THREE.MeshBasicMaterial({
+                color: color,
+                transparent: true,
+                opacity: 0.8,
+                side: THREE.DoubleSide
+            });
+
+            const pulseRing = new THREE.Mesh(pulseGeometry, pulseMaterial);
+            pulseRing.rotation.x = -Math.PI / 2;
+            pulseRing.position.y = -0.05; // Slightly above field
+            scene.add(pulseRing);
+
+            // Animate the pulse
+            let scale = 1;
+            let opacity = 0.8;
+            const pulseAnimation = setInterval(() => {
+                scale += 0.04;
+                opacity -= 0.02;
+
+                pulseRing.scale.set(scale, scale, 1);
+                pulseMaterial.opacity = opacity;
+
+                if (opacity <= 0) {
+                    clearInterval(pulseAnimation);
+                    scene.remove(pulseRing);
+                }
+            }, 30);
+        }
+
+        function createBoundaryParticles() {
+            // Create particles that spray up from the boundary
+            const particleCount = 100;
+            const particleGeometry = new THREE.BufferGeometry();
+            const particleMaterial = new THREE.PointsMaterial({
+                color: 0xFFD700,
+                size: 0.2,
+                transparent: true,
+                opacity: 0.8
+            });
+
+            // Create random positions around the boundary
+            const positions = [];
+            const velocities = [];
+
+            for (let i = 0; i < particleCount; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const x = Math.cos(angle) * boundaryRadius;
+                const z = Math.sin(angle) * boundaryRadius;
+
+                positions.push(x, 0, z);
+
+                // Random velocity for animation
+                velocities.push(
+                    (Math.random() - 0.5) * 0.1,
+                    Math.random() * 0.2,
+                    (Math.random() - 0.5) * 0.1
+                );
+            }
+
+            particleGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+
+            const particles = new THREE.Points(particleGeometry, particleMaterial);
+            scene.add(particles);
+
+            // Animate particles
+            let frame = 0;
+            const particleAnimation = setInterval(() => {
+                frame++;
+                const positions = particles.geometry.attributes.position.array;
+
+                for (let i = 0; i < particleCount; i++) {
+                    const i3 = i * 3;
+
+                    // Update position based on velocity
+                    positions[i3] += velocities[i3];
+                    positions[i3 + 1] += velocities[i3 + 1];
+                    positions[i3 + 2] += velocities[i3 + 2];
+
+                    // Add gravity
+                    velocities[i3 + 1] -= 0.01;
+                }
+
+                particles.geometry.attributes.position.needsUpdate = true;
+
+                // Fade out particles
+                particleMaterial.opacity = Math.max(0, 0.8 - frame * 0.02);
+
+                if (frame > 40) {
+                    clearInterval(particleAnimation);
+                    scene.remove(particles);
+                }
+            }, 30);
         }
 
         function addCreaseLines(bowlerZ, batsmanZ) {
@@ -572,20 +1000,76 @@
         }
 
         function createBat() {
-            // Simple bat made of box geometry
-            const batHandleGeometry = new THREE.BoxGeometry(0.1, 0.5, 0.1);
-            const batBladeGeometry = new THREE.BoxGeometry(0.2, 0.7, 0.05);
-            const batMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 }); // Brown
+            // Create a cricket bat with more realistic shape and textures
+            const batGroup = new THREE.Group();
 
-            const batHandle = new THREE.Mesh(batHandleGeometry, batMaterial);
-            const batBlade = new THREE.Mesh(batBladeGeometry, batMaterial);
+            // Handle (cylindrical)
+            const handleGeometry = new THREE.CylinderGeometry(0.04, 0.05, 0.5, 8);
+            const handleMaterial = new THREE.MeshPhongMaterial({
+                color: 0x8B4513, // Brown
+                shininess: 30,
+                specular: 0x222222
+            });
+            const handle = new THREE.Mesh(handleGeometry, handleMaterial);
+            handle.position.y = 0;
+            handle.castShadow = true;
+            batGroup.add(handle);
 
-            batBlade.position.y = -0.6;
+            // Create bat blade with curved shape
+            const bladeGeometry = new THREE.BoxGeometry(0.2, 0.7, 0.05);
 
-            bat = new THREE.Group();
-            bat.add(batHandle);
-            bat.add(batBlade);
+            // Create wood grain texture
+            const bladeTexture = createWoodTexture();
 
+            const bladeMaterial = new THREE.MeshPhongMaterial({
+                map: bladeTexture,
+                color: 0xD2B48C, // Tan
+                shininess: 20,
+                specular: 0x222222,
+                bumpMap: bladeTexture,
+                bumpScale: 0.02
+            });
+
+            const blade = new THREE.Mesh(bladeGeometry, bladeMaterial);
+            blade.position.y = -0.6;
+            blade.castShadow = true;
+
+            // Add a slight curve to the blade
+            blade.geometry.vertices = addCurveToBlade(blade.geometry.vertices);
+
+            batGroup.add(blade);
+
+            // Add grip tape texture to handle
+            const gripGeometry = new THREE.CylinderGeometry(0.041, 0.051, 0.48, 8);
+            const gripMaterial = new THREE.MeshPhongMaterial({
+                color: 0xeeeeee,
+                shininess: 5,
+                specular: 0x111111
+            });
+
+            // Add grip texture with canvas
+            const gripTexture = createGripTexture();
+            gripMaterial.map = gripTexture;
+
+            const grip = new THREE.Mesh(gripGeometry, gripMaterial);
+            grip.position.y = 0;
+            batGroup.add(grip);
+
+            // Add logo to bat
+            const logoGeometry = new THREE.PlaneGeometry(0.15, 0.15);
+            const logoMaterial = new THREE.MeshBasicMaterial({
+                transparent: true,
+                opacity: 0.8,
+                color: 0xFFFFFF
+            });
+
+            const logo = new THREE.Mesh(logoGeometry, logoMaterial);
+            logo.position.set(0, -0.4, 0.03);
+            logo.rotation.x = Math.PI;
+            batGroup.add(logo);
+
+            // Finalize the bat
+            bat = batGroup;
             bat.position.set(0, 1, 2.5);
             bat.rotation.x = Math.PI / 6; // Slight tilt
 
@@ -595,11 +1079,118 @@
             scene.add(bat);
         }
 
+        // Helper function that would normally reshape vertices
+        // Since we can't directly modify the vertices in modern THREE.js, this is mocked
+        function addCurveToBlade(vertices) {
+            // This would normally modify the vertices to curve the blade
+            // In modern THREE.js we would use BufferGeometry methods instead
+            return vertices;
+        }
+
+        function createWoodTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 128;
+            canvas.height = 512;
+            const context = canvas.getContext('2d');
+
+            // Base wood color
+            context.fillStyle = '#D2B48C'; // Tan
+            context.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Add wood grain
+            context.globalAlpha = 0.4;
+            for (let i = 0; i < canvas.height; i += 2) {
+                context.beginPath();
+                context.moveTo(0, i);
+
+                // Create wavy lines for wood grain
+                for (let x = 0; x < canvas.width; x += 10) {
+                    const y = i + Math.sin(x * 0.1) * 3;
+                    context.lineTo(x, y);
+                }
+
+                context.strokeStyle = Math.random() > 0.5 ? '#8B4513' : '#A0522D';
+                context.lineWidth = Math.random() * 2 + 0.5;
+                context.stroke();
+            }
+
+            // Add some knots in the wood
+            for (let i = 0; i < 3; i++) {
+                const x = Math.random() * canvas.width;
+                const y = Math.random() * canvas.height;
+                const radius = Math.random() * 10 + 5;
+
+                const knot = context.createRadialGradient(x, y, 1, x, y, radius);
+                knot.addColorStop(0, '#8B4513');
+                knot.addColorStop(0.7, '#D2B48C');
+                knot.addColorStop(1, 'transparent');
+
+                context.fillStyle = knot;
+                context.globalAlpha = 0.7;
+                context.beginPath();
+                context.arc(x, y, radius, 0, Math.PI * 2);
+                context.fill();
+            }
+
+            const texture = new THREE.CanvasTexture(canvas);
+            return texture;
+        }
+
+        function createGripTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 128;
+            canvas.height = 256;
+            const context = canvas.getContext('2d');
+
+            // Base grip color
+            context.fillStyle = '#EEEEEE';
+            context.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Add grip texture lines
+            for (let i = 0; i < canvas.height; i += 5) {
+                context.beginPath();
+                context.moveTo(0, i);
+                context.lineTo(canvas.width, i);
+                context.strokeStyle = '#CCCCCC';
+                context.lineWidth = 2;
+                context.stroke();
+            }
+
+            // Add diagonal grip patterns
+            context.lineWidth = 1;
+            for (let i = -canvas.width; i < canvas.width * 2; i += 10) {
+                context.beginPath();
+                context.moveTo(i, 0);
+                context.lineTo(i + canvas.height, canvas.height);
+                context.strokeStyle = '#AAAAAA';
+                context.stroke();
+
+                context.beginPath();
+                context.moveTo(i + 5, 0);
+                context.lineTo(i + 5 + canvas.height, canvas.height);
+                context.strokeStyle = '#DDDDDD';
+                context.stroke();
+            }
+
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            texture.repeat.set(4, 2);
+
+            return texture;
+        }
+
         function createBall() {
             const ballGeometry = new THREE.SphereGeometry(0.1, 16, 16);
-            const ballMaterial = new THREE.MeshLambertMaterial({ color: 0xDC143C }); // Crimson
+            const ballMaterial = new THREE.MeshLambertMaterial({
+                color: 0xDC143C, // Crimson
+                // Add phong material properties for better lighting
+                shininess: 30,
+                specular: 0x333333
+            });
             ball = new THREE.Mesh(ballGeometry, ballMaterial);
             ball.position.set(0, 1, -5); // Start far from batsman
+            ball.castShadow = true;  // Allow ball to cast shadows
 
             // Initialize ball properties
             ball.runsCounted = false;
@@ -608,6 +1199,9 @@
             ball.intendedDistance = undefined;
             ball.reachedTargetDistance = false;
             ball.stuckCheckTimer = null;
+            ball.lowestY = 1; // Track the lowest y-position to detect ground contact
+            ball.originalScale = { x: 1, y: 1, z: 1 }; // Store original scale
+            ball.bounceCount = 0; // Track number of bounces
 
             scene.add(ball);
 
@@ -756,11 +1350,23 @@
 
             // Reset the ball's boundaryCrossed flag
             if (ball) {
+                // Reset ball position to bowler's end
+                ball.position.set(0, 1, -5);
+
+                // Reset ball direction toward batsman
+                ballDirection = { x: 0, y: 0, z: 1 };
+
+                // Reset all ball state flags
                 ball.boundaryCrossed = false;
                 ball.runsCounted = false;
                 ball.predictedRuns = undefined;
                 ball.intendedDistance = undefined;
                 ball.reachedTargetDistance = false;
+                ball.lowestY = 1; // Reset lowest Y position
+                ball.bounceCount = 0; // Reset bounce count
+
+                // Ensure ball is at proper scale
+                ball.scale.set(1, 1, 1);
 
                 // Clear any stuck check timer
                 if (ball.stuckCheckTimer) {
@@ -784,65 +1390,76 @@
 
             deliveryType = selectedType;
 
-            // Reset ball position with slight variation
-            ball.position.set(Math.random() * 0.4 - 0.2, 1, -5);
+            // Choose pitch length based on probability
+            const randomPitchVal = Math.random();
+            cumulativeProbability = 0;
 
-            // Set initial direction based on delivery type
+            for (const [length, probability] of Object.entries(pitchLengths)) {
+                cumulativeProbability += probability;
+                if (randomPitchVal <= cumulativeProbability) {
+                    currentPitchLength = length;
+                    break;
+                }
+            }
+
+            // Initialize variables based on selected delivery type
             switch (deliveryType) {
+                case 'straight':
+                    gravity = 0.01; // Further increased gravity
+                    ballSpeed = 0.12;
+                    ballSpin = 0;
+                    swingFactor = 0;
+                    break;
+                case 'swing':
+                    gravity = 0.01; // Further increased gravity
+                    ballSpeed = 0.11;
+                    ballSpin = 0;
+                    swingFactor = 0.001;
+                    swingDirection = Math.random() > 0.5 ? 1 : -1;
+                    break;
+                case 'slow':
+                    gravity = 0.01; // Further increased gravity
+                    ballSpeed = 0.09;
+                    ballSpin = (Math.random() > 0.5 ? 0.002 : -0.002);
+                    swingFactor = 0.0003;
+                    break;
                 case 'fast':
-                    ballSpeed = 0.15;
-                    ballDirection = {
-                        x: Math.random() * 0.01 - 0.005,
-                        y: 0.01, // Slight upward trajectory
-                        z: 0.13
-                    };
-                    gravity = 0.0015;
+                    gravity = 0.01; // Further increased gravity
+                    ballSpeed = 0.14;
                     ballSpin = 0;
                     swingFactor = 0.0002;
                     break;
-
-                case 'slow':
-                    ballSpeed = 0.08;
-                    ballDirection = {
-                        x: Math.random() * 0.01 - 0.005,
-                        y: 0.03, // Higher trajectory
-                        z: 0.07
-                    };
-                    gravity = 0.0008;
-                    ballSpin = (Math.random() > 0.5 ? 0.004 : -0.004);
-                    swingFactor = 0.0001;
+            }
+            // Set initial trajectory based on pitch length
+            let initialY = 0;
+            switch (currentPitchLength) {
+                case 'yorker':
+                    initialY = 0.0003; // Further lower trajectory for yorker
                     break;
-
-                case 'swing':
-                    ballSpeed = 0.12;
-                    ballDirection = {
-                        x: 0,
-                        y: 0.015,
-                        z: 0.11
-                    };
-                    gravity = 0.0012;
-                    ballSpin = 0;
-                    swingFactor = 0.001;
-                    swingDirection = Math.random() > 0.5 ? 1 : -1; // Random swing direction
+                case 'full':
+                    initialY = 0.0015; // Further adjusted trajectory for full length
                     break;
-
-                case 'straight':
-                default:
-                    ballSpeed = 0.12;
-                    ballDirection = {
-                        x: Math.random() * 0.005 - 0.0025, // Very slight random variation
-                        y: 0.01,
-                        z: 0.1
-                    };
-                    gravity = 0.001;
-                    ballSpin = 0;
-                    swingFactor = 0.0001; // Almost no swing
+                case 'good':
+                    initialY = 0.003; // Further adjusted trajectory for good length
+                    break;
+                case 'short':
+                    initialY = 0.007; // Further adjusted trajectory for short length
                     break;
             }
 
+            // Add slight variations to make bowling less predictable
+            const xVariation = (Math.random() * 0.01) - 0.005; // Small lateral variation
+
+            // Set the ball direction with the calculated values
+            ballDirection = {
+                x: xVariation,
+                y: initialY,
+                z: 1.0  // Forward momentum towards batsman
+            };
+
             // Update UI to show delivery type
             const scoreElement = document.getElementById('score');
-            scoreElement.innerHTML = `Score: ${score} | ${deliveryType.toUpperCase()} ball`;
+            scoreElement.innerHTML = `Score: ${score} | ${deliveryType.toUpperCase()} ${currentPitchLength} ball`;
         }
 
         function swingBat() {
@@ -902,7 +1519,7 @@
 
         function checkBatBallCollision() {
             // Create a sphere for the ball
-            const ballRadius = 0.1;
+            const ballRadius = 0.05;
             // Increase collision radius to make hitting easier
             const ballSphere = new THREE.Sphere(ball.position, ballRadius * 1.3);
 
@@ -936,7 +1553,7 @@
             const positionAccuracy = 1 - Math.min(1, Math.abs(ball.position.x - bat.position.x) * 2);
 
             // Adjust the weighting to give more importance to timing
-            shotQuality = shotQuality * 0.8 + positionAccuracy * 0.2;
+            shotQuality = shotQuality * 0.7 + positionAccuracy * 0.3;
 
             // Ensure minimum shot quality isn't too low when hitting - minimum 0.2 for any hit
             shotQuality = Math.max(0.2, shotQuality);
@@ -958,8 +1575,8 @@
 
             // Default target direction values - we'll modify these based on runs
             let targetDirectionX = bat.rotation.y * 3 + batPosition;
-            let targetDirectionY = 0.01; // Base elevation
-            let targetDirectionZ = -0.1; // Base reverse direction
+            let targetDirectionY = 0.03; // Base elevation (increased from 0.01)
+            let targetDirectionZ = -0.2; // Base reverse direction (increased from -0.1)
 
             // Calculate maximum distances for each run score
             // Updated distances as per requirements:
@@ -968,12 +1585,12 @@
             // 3 runs: 30-50 meters
             // 4/6 runs: go to boundary
             const maxDistances = {
-                0: 5,   // Dot ball - very short distance
+                0: 8,   // Dot ball - very short distance (increased from 5)
                 1: 15,  // Single - 10-20 meter range (using middle value)
                 2: 25,  // Double - 20-30 meter range (using middle value)
                 3: 40,  // Triple - 30-50 meter range (using middle value)
-                4: 10,  // Four - reaches ground boundary (this triggers boundary detection)
-                6: 15   // Six - clears boundary in the air (this triggers boundary detection)
+                4: 14,  // Four - reaches ground boundary (increased from 10)
+                6: 20   // Six - clears boundary in the air (increased from 15)
             };
 
             // Set runs based on timing quality
@@ -982,62 +1599,62 @@
                 newRuns = 6;
 
                 // High elevation, long distance
-                targetDirectionY = 0.14;
-                targetDirectionZ = -0.14;
+                targetDirectionY = 0.2;  // Increased from 0.14
+                targetDirectionZ = -0.25; // Increased from -0.14
             }
             else if (runQuality > 0.75) {
                 // Great timing - FOUR!
                 newRuns = 4;
 
                 // Lower trajectory but fast horizontal movement
-                targetDirectionY = 0.06;
-                targetDirectionZ = -0.13;
+                targetDirectionY = 0.1;  // Increased from 0.06
+                targetDirectionZ = -0.22; // Increased from -0.13
             }
             else if (runQuality > 0.6) {
                 // Good timing - THREE
                 newRuns = 3;
 
                 // Medium trajectory, won't reach boundary
-                targetDirectionY = 0.045;
-                targetDirectionZ = -0.09;
+                targetDirectionY = 0.08; // Increased from 0.045
+                targetDirectionZ = -0.18; // Increased from -0.09
             }
             else if (runQuality > 0.45) {
                 // Decent timing - TWO
                 newRuns = 2;
 
                 // Lower trajectory, shorter distance
-                targetDirectionY = 0.03;
-                targetDirectionZ = -0.065;
+                targetDirectionY = 0.06; // Increased from 0.03
+                targetDirectionZ = -0.14; // Increased from -0.065
             }
             else if (runQuality > 0.3) {
                 // Okay timing - ONE
                 newRuns = 1;
 
                 // Very low trajectory, short distance
-                targetDirectionY = 0.02;
-                targetDirectionZ = -0.04;
+                targetDirectionY = 0.04; // Increased from 0.02
+                targetDirectionZ = -0.1;  // Increased from -0.04
             }
             else {
                 // Poor timing - DOT ball (no run)
                 newRuns = 0;
 
                 // Weakest hit
-                targetDirectionY = 0.01;
-                targetDirectionZ = -0.02;
+                targetDirectionY = 0.02; // Increased from 0.01
+                targetDirectionZ = -0.05; // Increased from -0.02
             }
 
             // Calculate shot power based on run value and intended distance
             const intendedDistance = maxDistances[newRuns];
-            const shotPower = intendedDistance / 14; // Scale power by intended distance ratio to boundary
+            const shotPower = intendedDistance / 10; // Scale power by intended distance ratio (changed from 14 to 10)
 
             // Apply bat position influence on direction
-            targetDirectionX *= (1 + shotPower * 0.5); // Horizontal adjustment based on power
+            targetDirectionX *= (1 + shotPower * 0.8); // Horizontal adjustment based on power (increased from 0.5 to 0.8)
 
             // Set final target direction with scaled components
             const targetDirection = {
-                x: targetDirectionX * (0.8 + shotPower * 0.4), // More power means more horizontal control
-                y: targetDirectionY * (0.9 + shotPower * 0.3), // More power means higher trajectory
-                z: targetDirectionZ * (0.8 + shotPower * 0.5)  // More power means more forward distance
+                x: targetDirectionX * (0.8 + shotPower * 0.6), // More power means more horizontal control (increased from 0.4 to 0.6)
+                y: targetDirectionY * (0.9 + shotPower * 0.5), // More power means higher trajectory (increased from 0.3 to 0.5)
+                z: targetDirectionZ * (0.8 + shotPower * 0.7)  // More power means more forward distance (increased from 0.5 to 0.7)
             };
 
             console.log(`Runs: ${newRuns}, Intended distance: ${intendedDistance.toFixed(1)}, Shot power: ${shotPower.toFixed(2)}`);
@@ -1072,6 +1689,16 @@
 
             // Start the smooth transition
             smoothBallTransition();
+
+            // Increase ball speed based on shot quality and run value
+            // Higher quality shots and higher run values get more speed
+            const baseSpeed = 0.15; // Base speed for any hit (increased from default 0.1)
+            const qualityBonus = shotQuality * 0.1; // Up to 0.1 bonus for perfect shots
+            const runBonus = (newRuns / 6) * 0.1; // Up to 0.1 bonus for maximum runs
+
+            // Set the new ball speed
+            ballSpeed = baseSpeed + qualityBonus + runBonus;
+            console.log(`Ball speed: ${ballSpeed.toFixed(2)}`);
 
             // Add visual feedback effect
             // Flash the ball color for good shots
@@ -1163,271 +1790,242 @@
         }
 
         function updateBallPosition() {
-            // Don't update if game is over
-            if (gameState === 'gameover') return;
+            if (gameState === 'bowling' || gameState === 'batting') {
+                // Update ball position based on direction and speed
+                ball.position.x += ballDirection.x * ballSpeed;
+                ball.position.y += ballDirection.y * ballSpeed;
+                ball.position.z += ballDirection.z * ballSpeed;
 
-            if (gameState !== 'bowling' && gameState !== 'batting') return;
+                // Apply gravity to Y direction
+                ballDirection.y -= gravity;
 
-            // Apply velocity
-            ball.position.x += ballDirection.x;
-            ball.position.y += ballDirection.y;
-            ball.position.z += ballDirection.z;
-
-            // ALWAYS apply gravity regardless of game state
-            ballDirection.y -= gravity;
-
-            // Update trajectory visualization
-            updateTrajectoryVisualization();
-
-            // Check for bat-ball collision in bowling state
-            if (gameState === 'bowling') {
-                checkBatBallCollision();
-
-                // Check for ball hitting stumps (only when bowling)
-                if (ball.position.z >= 2.9 && ball.position.z <= 3.1 &&
-                    ball.position.y <= 0.7 && ball.position.y >= 0 &&
-                    Math.abs(ball.position.x) <= 0.15) {
-                    // Ball has hit the stumps!
-                    console.log("BOWLED OUT! Ball hit the stumps.");
-                    playerOut = true;
-                    gameState = 'bowled';
-
-                    // Determine which stump was hit based on x position
-                    let hitStumpIndex = 0; // Center stump by default
-                    if (ball.position.x < -0.05) {
-                        hitStumpIndex = -1; // Left stump
-                    } else if (ball.position.x > 0.05) {
-                        hitStumpIndex = 1; // Right stump
-                    }
-
-                    // Animate the stumps falling
-                    animateStumpsFalling(hitStumpIndex);
-
-                    // Show "BOWLED OUT!" message
-                    showBowledOutMessage();
-                }
-            }
-
-            // Check for boundary crossing and ball stopping during batting
-            if (gameState === 'batting') {
-                // Calculate horizontal distance from origin (center of field)
-                const distance = Math.sqrt(ball.position.x * ball.position.x + ball.position.z * ball.position.z);
-
-                // ONLY check for boundary crossings if this hit was meant to be a 4 or a 6
-                const isBoundaryShot = ball.predictedRuns >= 4;
-
-                // Check for six (ball is above ground level when crossing boundary)
-                if (isBoundaryShot && distance >= boundaryRadius && ball.position.y > 0.5 && !ball.boundaryCrossed) {
-                    console.log("SIX! Ball crossed boundary in the air");
-                    highlightBoundary("six");
-                    ball.boundaryCrossed = true; // Mark as crossed to avoid multiple counts
-
-                    // Only award 6 runs if the shot was meant to be a 6
-                    const finalRuns = ball.predictedRuns === 6 ? 6 : 4;
-                    updateRunsForBoundary(finalRuns);
-                }
-                // Check for four (ball is at ground level when crossing boundary)
-                else if (isBoundaryShot && distance >= 10 && ball.position.y <= 0.5 && !ball.boundaryCrossed) {
-                    console.log("FOUR! Ball crossed boundary along the ground");
-                    highlightBoundary("four");
-                    ball.boundaryCrossed = true; // Mark as crossed to avoid multiple counts
-
-                    // Award 4 runs for ground boundary crossing
-                    updateRunsForBoundary(4);
+                // Track lowest Y position to determine if ball has touched the ground
+                if (ball.position.y < ball.lowestY) {
+                    ball.lowestY = ball.position.y;
                 }
 
-                // For non-boundary shots (1,2,3 runs), check if the ball has reached its intended distance
-                else if (!isBoundaryShot && !ball.runsCounted) {
-                    // Updated logic for non-boundary shots with specific distance ranges:
-                    // 1 run: 10-20 meters
-                    // 2 runs: 20-30 meters
-                    // 3 runs: 30-50 meters
-                    let distanceReached = false;
+                // Handle bounce when ball hits the ground
+                if (ball.position.y <= groundY && ballDirection.y < 0) {
+                    // Only allow one bounce
+                    if (ball.bounceCount < 1) {
+                        // Ball has hit the ground
+                        // Make sure the ball doesn't go below ground
+                        ball.position.y = groundY;
 
-                    // Different check based on runs
-                    switch (ball.predictedRuns) {
-                        case 1:
-                            // For 1 run, check if distance is between 10-20 meters
-                            distanceReached = (distance >= 10 && distance <= 20);
-                            break;
-                        case 2:
-                            // For 2 runs, check if distance is between 20-30 meters
-                            distanceReached = (distance >= 20 && distance <= 30);
-                            break;
-                        case 3:
-                            // For 3 runs, check if distance is between 30-50 meters
-                            distanceReached = (distance >= 30 && distance <= 50);
-                            break;
-                        default:
-                            // For 0 or other runs, use the intended distance
-                            distanceReached = (distance >= ball.intendedDistance);
-                    }
+                        // Bounce with energy loss
+                        ballDirection.y = -ballDirection.y * bounceCoefficient;
 
-                    // If the ball has reached its intended distance range
-                    if (distanceReached) {
-                        // Award runs and mark as counted
-                        console.log(`Ball reached appropriate distance range for ${ball.predictedRuns} runs: ${distance.toFixed(1)} meters`);
-                        updateRunsForBoundary(ball.predictedRuns);
-                        ball.runsCounted = true;
+                        // Apply lateral spin effect if any
+                        ballDirection.x += ballSpin;
 
-                        // Rapidly slow down the ball once it has reached its intended distance
-                        ballDirection.x *= 0.7;
-                        ballDirection.z *= 0.7;
+                        // Add bounce visualization - squish the ball
+                        ball.scale.set(1.1, 0.8, 1.1); // Flatten Y, expand X and Z slightly
 
-                        // Apply additional drag for better stopping behavior
-                        ball.reachedTargetDistance = true;
-                    }
+                        // Increment bounce counter
+                        ball.bounceCount++;
 
-                    // Apply extra drag after reaching target distance
-                    if (ball.reachedTargetDistance) {
-                        ballDirection.x *= 0.95;
-                        ballDirection.z *= 0.95;
-                    }
-                }
+                        // Return to normal shape after squish
+                        setTimeout(() => {
+                            if (ball) {
+                                // Smoothly transition back to original shape
+                                const restoreScale = () => {
+                                    ball.scale.x = THREE.MathUtils.lerp(ball.scale.x, 1, 0.3);
+                                    ball.scale.y = THREE.MathUtils.lerp(ball.scale.y, 1, 0.3);
+                                    ball.scale.z = THREE.MathUtils.lerp(ball.scale.z, 1, 0.3);
 
-                // If ball has stopped completely without crossing boundary or reaching intended distance
-                const isAlmostStopped = Math.abs(ballDirection.x) < 0.001 &&
-                    Math.abs(ballDirection.z) < 0.001 &&
-                    ball.position.y <= 0.1;
-
-                if (isAlmostStopped && !ball.runsCounted && ball.predictedRuns !== undefined) {
-                    // Award predicted runs based on shot quality
-                    console.log("Ball stopped before reaching intended distance");
-                    updateRunsForBoundary(ball.predictedRuns);
-                    ball.runsCounted = true;
-                }
-            }
-
-            // Apply swing (only when ball is in flight)
-            if (ball.position.y > groundY + 0.1) {
-                // Swing increases as the ball travels closer to the batsman
-                const swingProgress = (ball.position.z + 5) / 7; // 0 to 1 as ball travels
-
-                if (deliveryType === 'swing') {
-                    // Late swing effect - increases as the ball gets closer to batsman
-                    ballDirection.x += swingDirection * swingFactor * swingProgress;
-                } else {
-                    // Slight drift for other deliveries
-                    ballDirection.x += swingDirection * swingFactor * 0.2;
-                }
-            }
-
-            // Handle bounce when ball hits the ground
-            if (ball.position.y <= groundY && ballDirection.y < 0) {
-                // Ball has hit the ground
-                // Bounce with energy loss
-                ballDirection.y = -ballDirection.y * bounceCoefficient;
-
-                // For non-boundary shots, reduce speed more with each bounce
-                if (ball.predictedRuns < 4) {
-                    // Lower run shots slow down more with each bounce
-                    ballDirection.x *= (0.9 - (3 - ball.predictedRuns) * 0.05);
-                    ballDirection.z *= (0.9 - (3 - ball.predictedRuns) * 0.05);
-
-                    // Apply additional drag when the ball is rolling on the ground
-                    // This ensures the ball will eventually come to a stop
-                    if (Math.abs(ballDirection.y) < 0.01) {
-                        ballDirection.x *= 0.97;
-                        ballDirection.z *= 0.97;
-                    }
-                } else {
-                    // Boundary shots maintain more momentum
-                    ballDirection.x *= 0.95;
-                    ballDirection.z *= 0.95;
-                }
-
-                // Add spin effect to bounce direction
-                ballDirection.x += ballSpin;
-
-                // Ensure ball doesn't go below ground
-                ball.position.y = groundY;
-
-                // Add visual bounce effect
-                ball.scale.y = 0.8; // Squish the ball
-                setTimeout(() => {
-                    if (ball) ball.scale.y = 1; // Restore ball shape
-                }, 50);
-            }
-
-            // Modified ball reset logic - improve detection for balls that are effectively stopped
-            // Changed boundary logic to allow ball to travel beyond standard play area
-            const maxDistance = 30; // Maximum allowed distance before reset
-            const isEffectivelyStopped = (Math.abs(ballDirection.x) < 0.001 &&
-                Math.abs(ballDirection.z) < 0.001 &&
-                ball.position.y <= 0.12); // Slightly higher threshold to catch balls at ground level
-
-            // Fix for horizon stuck - add a timeout to force reset if the ball is just rolling slowly
-            if (!ball.stuckCheckTimer && gameState === 'batting' &&
-                ball.position.y <= 0.15 && // Only check near ground level
-                Math.abs(ballDirection.x) < 0.01 && Math.abs(ballDirection.z) < 0.01 && // Slow moving
-                Math.abs(ballDirection.x) > 0.0001) { // But not completely stopped
-
-                ball.stuckCheckTimer = setTimeout(() => {
-                    if (gameState === 'batting' && !ball.runsCounted) {
-                        console.log("Ball was moving too slowly - forcing reset");
-                        // Force the ball to stop completely
-                        ballDirection.x = 0;
-                        ballDirection.y = 0;
-                        ballDirection.z = 0;
-                    }
-                }, 2000); // Wait 2 seconds before force stopping a slow-moving ball
-            }
-
-            if (Math.abs(ball.position.x) > maxDistance ||
-                Math.abs(ball.position.z) > maxDistance ||
-                isEffectivelyStopped) {
-
-                if (gameState !== 'resetting' && gameState !== 'bowled' && gameState !== 'gameover') {
-                    gameState = 'resetting';
-                    // Clear trajectory when resetting
-                    clearTrajectory();
-
-                    // Clear any stuck check timer
-                    if (ball.stuckCheckTimer) {
-                        clearTimeout(ball.stuckCheckTimer);
-                        ball.stuckCheckTimer = null;
-                    }
-
-                    // Update score before reset if not already done
-                    if (ball && !ball.runsCounted && ball.predictedRuns !== undefined) {
-                        updateRunsForBoundary(ball.predictedRuns);
-                    }
-
-                    setTimeout(() => {
-                        // Reset the ball's flags
-                        if (ball) {
-                            ball.boundaryCrossed = false;
-                            ball.runsCounted = false;
-                            ball.predictedRuns = undefined;
-                            ball.intendedDistance = undefined;
-                            ball.reachedTargetDistance = false;
-
-                            // Clear any stuck check timer
-                            if (ball.stuckCheckTimer) {
-                                clearTimeout(ball.stuckCheckTimer);
-                                ball.stuckCheckTimer = null;
+                                    if (Math.abs(ball.scale.y - 1) > 0.01) {
+                                        requestAnimationFrame(restoreScale);
+                                    } else {
+                                        ball.scale.set(1, 1, 1); // Ensure perfect shape at end
+                                    }
+                                };
+                                requestAnimationFrame(restoreScale);
                             }
+                        }, 60);
+                    } else {
+                        // After first bounce, just keep the ball above ground but don't bounce
+                        ball.position.y = groundY;
+                    }
+                }
+
+                // Check for bat-ball collision in bowling state
+                if (gameState === 'bowling') {
+                    checkBatBallCollision();
+
+                    // Check for ball hitting stumps
+                    if (ball.position.z >= 2.9 && ball.position.z <= 3.1 &&
+                        ball.position.y <= 0.7 && ball.position.y >= 0 &&
+                        Math.abs(ball.position.x) <= 0.15) {
+                        // Ball has hit the stumps!
+                        console.log("BOWLED OUT! Ball hit the stumps.");
+                        playerOut = true;
+                        gameState = 'bowled';
+
+                        // Determine which stump was hit based on x position
+                        let hitStumpIndex = 0; // Center stump by default
+                        if (ball.position.x < -0.05) {
+                            hitStumpIndex = -1; // Left stump
+                        } else if (ball.position.x > 0.05) {
+                            hitStumpIndex = 1; // Right stump
                         }
 
-                        // Only auto-continue if not bowled out (game over)
-                        if (!playerOut) {
-                            gameState = 'waiting';
-                            startBowling();
-                        }
-                    }, 2000);
+                        // Animate the stumps falling
+                        animateStumpsFalling(hitStumpIndex);
+
+                        // Show "BOWLED OUT!" message
+                        showBowledOutMessage();
+                    }
+                }
+
+                // Update trajectory visualization
+                updateTrajectoryVisualization();
+            }
+        }
+
+        function updateBallPhysics() {
+            // Check if the ball has crossed the boundary
+            if (gameState === 'batting' && ball.position.y < 1 && !ball.boundaryCrossed) {
+                const distanceFromCenter = Math.sqrt(ball.position.x * ball.position.x + ball.position.z * ball.position.z);
+
+                if (distanceFromCenter >= boundaryRadius) {
+                    ball.boundaryCrossed = true;
+
+                    // Determine if it's a four or a six based on whether the ball has bounced
+                    // Check if ball has touched the ground (if y position has been below a certain level)
+                    const hasTouchedGround = ball.lowestY < 0.1; // If ball has gone below this height, it touched the ground
+
+                    if (hasTouchedGround) {
+                        // It's a four - the ball touched the ground before crossing boundary
+                        updateRunsForBoundary(4);
+                        highlightBoundary("four");
+                        console.log("FOUR! Ball crossed boundary after touching ground.");
+
+                        // Reset the ball immediately after showing the run
+                        resetBall();
+                    } else {
+                        // It's a six - ball crossed boundary without touching ground
+                        updateRunsForBoundary(6);
+                        highlightBoundary("six");
+                        console.log("SIX! Ball crossed boundary without touching ground.");
+
+                        // Reset the ball immediately after showing the run
+                        resetBall();
+                    }
                 }
             }
 
-            // Ensure ball always has some minimum velocity to prevent getting stuck
-            const minVelocity = 0.001;
-            if (Math.abs(ballDirection.x) < minVelocity &&
-                Math.abs(ballDirection.z) < minVelocity &&
-                Math.abs(ballDirection.y) < minVelocity &&
-                gameState === 'batting') {
+            // For non-boundary runs, make the ball stop more realistically
+            if (gameState === 'batting' && !ball.boundaryCrossed) {
+                // Apply more friction to slow the ball gradually when it's near the ground
+                if (ball.position.y < 0.5) {
+                    ballDirection.x *= 0.985; // Reduced friction (changed from 0.97)
+                    ballDirection.z *= 0.985; // Reduced friction (changed from 0.97)
+                }
 
-                // Apply a small downward force to ensure the ball falls
-                ballDirection.y -= 0.005;
+                // If the ball is moving quite slowly and near the ground, stop it entirely
+                if (Math.abs(ballDirection.x) < 0.005 && // Reduced threshold (changed from 0.01)
+                    Math.abs(ballDirection.z) < 0.005 && // Reduced threshold (changed from 0.01)
+                    ball.position.y < 0.2) {
+
+                    // Ball has stopped - calculate runs based on distance
+                    const distanceFromCenter = Math.sqrt(ball.position.x * ball.position.x + ball.position.z * ball.position.z);
+
+                    // Only calculate runs if not already counted
+                    if (!ball.runsCounted) {
+                        let calculatedRuns = 0;
+
+                        // Scale runs based on distance - keep ball from reaching boundary on 1/2/3 runs
+                        if (distanceFromCenter < boundaryRadius * 0.3) {
+                            calculatedRuns = 1;
+                        } else if (distanceFromCenter < boundaryRadius * 0.5) {
+                            calculatedRuns = 2;
+                        } else if (distanceFromCenter < boundaryRadius * 0.7) {
+                            calculatedRuns = 3;
+                        }
+
+                        if (calculatedRuns > 0) {
+                            updateRunsForBoundary(calculatedRuns);
+                            console.log(`${calculatedRuns} RUNS! Ball stopped at distance: ${distanceFromCenter.toFixed(2)}`);
+
+                            // Reset the ball immediately after showing the run
+                            resetBall();
+                        }
+                    }
+
+                    // Further decay motion to ensure the ball stops completely
+                    ballDirection.x = 0;
+                    ballDirection.y = 0;
+                    ballDirection.z = 0;
+                }
             }
+
+            // Check if ball has gone too far or is effectively stopped
+            if ((Math.abs(ball.position.x) > 30 ||
+                Math.abs(ball.position.z) > 30 ||
+                (Math.abs(ballDirection.x) < 0.001 &&
+                    Math.abs(ballDirection.z) < 0.001 &&
+                    Math.abs(ballDirection.y) < 0.001 &&
+                    ball.position.y < 0.2)) &&
+                gameState !== 'resetting' &&
+                gameState !== 'bowled' &&
+                gameState !== 'gameover') {
+
+                resetBall();
+            }
+        }
+
+        function resetBall() {
+            gameState = 'resetting';
+
+            // Clear any stuck check timer
+            if (ball.stuckCheckTimer) {
+                clearTimeout(ball.stuckCheckTimer);
+                ball.stuckCheckTimer = null;
+            }
+
+            // Update score if not already done
+            if (!ball.runsCounted && ball.predictedRuns !== undefined) {
+                updateRunsForBoundary(ball.predictedRuns);
+                ball.runsCounted = true;
+            }
+
+            // Clear trajectory
+            clearTrajectory();
+
+            // Check if a boundary was scored (4 or 6)
+            const wasBoundary = ball.boundaryCrossed;
+
+            // Reset the ball immediately instead of with a delay
+            // Use a much shorter delay of 500ms to reset more quickly after runs are shown
+            setTimeout(() => {
+                if (ball) {
+                    // Reset ball properties
+                    ball.boundaryCrossed = false;
+                    ball.runsCounted = false;
+                    ball.predictedRuns = undefined;
+                    ball.intendedDistance = undefined;
+                    ball.reachedTargetDistance = false;
+                    ball.lowestY = 1;
+                    ball.bounceCount = 0;
+
+                    // Reset ball scale to ensure it's not squished
+                    ball.scale.set(1, 1, 1);
+                }
+
+                // Continue game if not out
+                if (!playerOut) {
+                    gameState = 'waiting';
+
+                    // Add extra delay for boundaries before starting the next ball
+                    if (wasBoundary) {
+                        // For boundaries, add a longer delay (3 seconds total)
+                        setTimeout(startBowling, 3000);
+                    } else {
+                        // For non-boundaries, start bowling immediately
+                        startBowling();
+                    }
+                }
+            }, 1000); // Base delay of 1 second
         }
 
         function updateRunsForBoundary(finalRuns) {
@@ -1521,68 +2119,59 @@
         }
 
         function highlightBoundary(type) {
-            // Flash the appropriate boundary line
-            if (type === "four" && fourLine) {
-                const originalOpacity = fourLine.material.opacity;
-                const originalColor = fourLine.material.color.clone();
+            // Enhanced boundary highlighting with pulse effect
+            if (type === "four") {
+                // Create a pulsing circle at the boundary for four
+                createBoundaryPulse(boundaryRadius, 0x00FF00); // Green for four
 
-                fourLine.material.color.set(0x00ff00);
-                fourLine.material.opacity = 1.0;
-
-                setTimeout(() => {
-                    fourLine.material.color.copy(originalColor);
-                    fourLine.material.opacity = originalOpacity;
-                }, 1000);
+                // Add a "FOUR" text popup
+                createRunTextPopup("FOUR", 0x00FF00);
             }
-            else if (type === "six" && boundaryLine) {
-                const originalColor = boundaryLine.material.color.clone();
+            else if (type === "six") {
+                // Create a pulsing circle at the boundary for six
+                createBoundaryPulse(boundaryRadius, 0xFFD700); // Gold for six
 
-                boundaryLine.material.color.set(0xffd700);
-                boundaryLine.material.transparent = true;
-                boundaryLine.material.opacity = 1.0;
+                // Add particle effect for six
+                createBoundaryParticles();
 
-                createBoundaryEffect(type);
-
-                setTimeout(() => {
-                    boundaryLine.material.color.copy(originalColor);
-                    boundaryLine.material.opacity = 0.8;
-                }, 1000);
+                // Add a "SIX" text popup
+                createRunTextPopup("SIX", 0xFFD700);
             }
         }
 
-        function createBoundaryEffect(type) {
-            // Create a glowing effect that expands from the boundary line
-            const radius = type === "four" ? 10 : boundaryRadius;
-            const color = type === "four" ? 0x00ff00 : 0xffd700; // Green for four, gold for six
+        function createRunTextPopup(text, color) {
+            // Create a popup text effect
+            const popup = document.createElement('div');
+            popup.style.position = 'absolute';
+            popup.style.left = '50%';
+            popup.style.top = '30%';
+            popup.style.transform = 'translate(-50%, -50%)';
+            popup.style.color = '#' + color.toString(16).padStart(6, '0');
+            popup.style.fontFamily = 'Arial, sans-serif';
+            popup.style.fontSize = '80px';
+            popup.style.fontWeight = 'bold';
+            popup.style.textShadow = '2px 2px 5px rgba(0,0,0,0.5)';
+            popup.style.opacity = '0';
+            popup.style.transition = 'all 0.5s ease-in-out';
+            popup.style.zIndex = '1000';
+            popup.textContent = text;
 
-            const glowGeometry = new THREE.RingGeometry(radius - 0.1, radius + 0.1, 64);
-            const glowMaterial = new THREE.MeshBasicMaterial({
-                color: color,
-                opacity: 0.8,
-                transparent: true,
-                side: THREE.DoubleSide
-            });
+            document.body.appendChild(popup);
 
-            const glowRing = new THREE.Mesh(glowGeometry, glowMaterial);
-            glowRing.rotation.x = -Math.PI / 2;
-            glowRing.position.y = -0.07; // Slightly above the field
-            scene.add(glowRing);
+            // Animate the text
+            setTimeout(() => {
+                popup.style.opacity = '1';
+                popup.style.fontSize = '120px';
 
-            // Animate the glow effect
-            let scale = 1;
-            let opacity = 0.8;
-            const glowAnimation = setInterval(() => {
-                scale += 0.05;
-                opacity -= 0.025;
+                setTimeout(() => {
+                    popup.style.opacity = '0';
+                    popup.style.fontSize = '150px';
 
-                glowRing.scale.set(scale, scale, 1);
-                glowMaterial.opacity = opacity;
-
-                if (opacity <= 0) {
-                    clearInterval(glowAnimation);
-                    scene.remove(glowRing);
-                }
-            }, 50);
+                    setTimeout(() => {
+                        if (document.body.contains(popup)) document.body.removeChild(popup);
+                    }, 1000);
+                }, 1500);
+            }, 100);
         }
 
         function updateScoreUI() {
@@ -1617,6 +2206,7 @@
             requestAnimationFrame(animate);
 
             updateBallPosition();
+            updateBallPhysics();
             updateTimingMeter();
 
             // Update score UI every frame to ensure it's always current
