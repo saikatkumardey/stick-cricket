@@ -68,71 +68,157 @@
             left: 50%;
             transform: translateX(-50%);
             width: 300px;
-            height: 20px;
-            background-color: rgba(0, 0, 0, 0.5);
+            height: 12px;
+            background-color: rgba(0, 0, 0, 0.6);
             border-radius: 10px;
             overflow: hidden;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5), inset 0 0 5px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        #timingMeter:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 6px;
+            background: linear-gradient(to bottom, rgba(255, 255, 255, 0.1), transparent);
+            border-radius: 10px 10px 0 0;
+            z-index: 4;
         }
 
         #timingZones {
             position: relative;
             width: 100%;
             height: 100%;
+            overflow: hidden;
+            border-radius: 8px;
         }
 
         .timing-zone {
             position: absolute;
             height: 100%;
             top: 0;
+            transition: all 0.3s ease;
         }
 
-        #perfectZone {
-            left: 45%;
+        /* Early zone - Red */
+        #earlyZone {
+            left: 0%;
+            width: 40%;
+            background: linear-gradient(to right, rgba(255, 50, 50, 0.8), rgba(255, 120, 50, 0.6));
+            box-shadow: 0 0 8px #ff3232;
+            z-index: 1;
+        }
+
+        /* Okay zone - Yellow (early side) */
+        #okayEarlyZone {
+            left: 40%;
             width: 10%;
-            background-color: gold;
-            opacity: 0.7;
+            background: linear-gradient(to right, rgba(255, 120, 50, 0.6), rgba(255, 255, 50, 0.7));
+            box-shadow: 0 0 5px #ffcc00;
+            z-index: 2;
         }
 
-        #goodZone {
-            left: 35%;
-            width: 30%;
-            background-color: #44cc44;
-            opacity: 0.7;
-            z-index: -1;
+        /* Perfect zone - Green */
+        #perfectZone {
+            left: 50%;
+            width: 10%;
+            background: linear-gradient(to right, rgba(50, 255, 50, 0.7), rgba(50, 255, 50, 0.9), rgba(50, 255, 50, 0.7));
+            box-shadow: 0 0 8px #32ff32;
+            z-index: 3;
+            animation: perfectPulse 2s infinite alternate;
         }
 
-        #okayZone {
-            left: 20%;
-            width: 60%;
-            background-color: #cccc44;
-            opacity: 0.7;
-            z-index: -2;
+        /* Okay zone - Yellow (late side) */
+        #okayLateZone {
+            left: 60%;
+            width: 10%;
+            background: linear-gradient(to right, rgba(255, 255, 50, 0.7), rgba(255, 120, 50, 0.6));
+            box-shadow: 0 0 5px #ffcc00;
+            z-index: 2;
+        }
+
+        /* Late zone - Red */
+        #lateZone {
+            left: 70%;
+            width: 40%;
+            background: linear-gradient(to right, rgba(255, 120, 50, 0.6), rgba(255, 50, 50, 0.8));
+            box-shadow: 0 0 8px #ff3232;
+            z-index: 1;
         }
 
         #timingIndicator {
             position: absolute;
-            width: 4px;
-            height: 24px;
+            width: 3px;
+            height: 18px;
             background-color: white;
-            top: -2px;
+            top: -3px;
             left: 0;
-            border-radius: 2px;
-            box-shadow: 0 0 5px rgba(255, 255, 255, 0.8);
+            border-radius: 3px;
+            box-shadow: 0 0 8px rgba(255, 255, 255, 1), 0 0 12px rgba(255, 255, 255, 0.8);
             transition: left 0.1s ease-out;
             opacity: 0;
+            z-index: 10;
+        }
+
+        #timingIndicator:after {
+            content: '';
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 50%;
+            bottom: -2px;
+            left: -2.5px;
+            box-shadow: 0 0 8px white;
+            animation: pulseGlow 1.5s infinite alternate;
+        }
+
+        /* Timing labels */
+        .timing-label {
+            position: absolute;
+            bottom: 95px;
+            font-size: 12px;
+            font-weight: bold;
+            color: white;
+            text-shadow: 0 0 3px rgba(0, 0, 0, 0.8);
+            opacity: 0.7;
+            transform: translateX(-50%);
+        }
+
+        #earlyLabel {
+            left: 20%;
+        }
+
+        #perfectLabel {
+            left: 55%;
+            color: #32ff32;
+        }
+
+        #lateLabel {
+            left: 85%;
         }
 
         #timingResult {
             position: absolute;
             bottom: 105px;
             left: 50%;
-            transform: translateX(-50%);
-            font-size: 18px;
+            transform: translateX(-50%) scale(0.9);
+            font-size: 22px;
             font-weight: bold;
             color: white;
-            text-shadow: 1px 1px 2px black;
+            text-shadow: 0 0 6px rgba(0, 0, 0, 0.8), 2px 2px 3px rgba(0, 0, 0, 0.6);
             opacity: 0;
-            transition: opacity 0.3s;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            padding: 5px 15px;
+            border-radius: 20px;
+            background-color: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(2px);
+            letter-spacing: 1px;
         }
 
         /* Game Over Screen Styles */
@@ -187,6 +273,44 @@
             background-color: #45a049;
             transform: scale(1.05);
         }
+
+        @keyframes perfectPulse {
+
+            0%,
+            100% {
+                opacity: 0.7;
+            }
+
+            50% {
+                opacity: 0.9;
+            }
+        }
+
+        @keyframes pulseGlow {
+            0% {
+                opacity: 0.7;
+                transform: scale(1);
+            }
+
+            100% {
+                opacity: 1;
+                transform: scale(1.2);
+            }
+        }
+
+        @keyframes resultScale {
+            0% {
+                transform: translateX(-50%) scale(0.8);
+            }
+
+            30% {
+                transform: translateX(-50%) scale(1.1);
+            }
+
+            100% {
+                transform: translateX(-50%) scale(1);
+            }
+        }
     </style>
 </head>
 
@@ -204,12 +328,17 @@
     <!-- Timing Meter -->
     <div id="timingMeter">
         <div id="timingZones">
-            <div class="timing-zone" id="okayZone"></div>
-            <div class="timing-zone" id="goodZone"></div>
+            <div class="timing-zone" id="earlyZone"></div>
+            <div class="timing-zone" id="okayEarlyZone"></div>
             <div class="timing-zone" id="perfectZone"></div>
+            <div class="timing-zone" id="okayLateZone"></div>
+            <div class="timing-zone" id="lateZone"></div>
             <div id="timingIndicator"></div>
         </div>
     </div>
+    <!-- <div class="timing-label" id="earlyLabel">EARLY</div>
+    <div class="timing-label" id="perfectLabel">PERFECT</div>
+    <div class="timing-label" id="lateLabel">LATE</div> -->
     <div id="timingResult"></div>
 
     <!-- Game Over Screen -->
@@ -238,6 +367,17 @@
             'slow': 0.1,
             'fast': 0.2
         };
+
+        // Ball trajectory visualization variables
+        let trajectoryPoints = []; // Array to store trajectory points
+        let trajectoryLine = null; // Line object for trajectory visualization
+        let trajectoryMaxPoints = 100; // Maximum number of points to track
+        let boundaryRadius = 14; // Radius of the boundary circle
+        let boundaryLine = null; // Reference to boundary line object
+        let fourLine = null; // Reference to the 4-run line
+        let sixLine = null; // Reference to the 6-run line
+        let showTrajectory = true; // Whether to show trajectory
+        let ballPositionMarkers = []; // Array to store ball position markers
 
         // Three.js variables
         let scene, camera, renderer;
@@ -325,8 +465,77 @@
             pitchObj.position.y = -0.09;
             scene.add(pitchObj);
 
+            // Add boundary lines
+            createBoundaryLines();
+
             // Add wide marks (crease lines) at both ends
             addCreaseLines(-4, 3); // Bowler's end and batsman's end
+        }
+
+        function createBoundaryLines() {
+            const boundaryMaterial = new THREE.LineBasicMaterial({ color: 0xFFFFFF, linewidth: 2 });
+
+            // Create main boundary line (circle)
+            const boundaryGeometry = new THREE.RingGeometry(boundaryRadius - 0.05, boundaryRadius, 64);
+            boundaryLine = new THREE.Mesh(boundaryGeometry, new THREE.MeshBasicMaterial({
+                color: 0xFFFFFF,
+                side: THREE.DoubleSide
+            }));
+            boundaryLine.rotation.x = -Math.PI / 2;
+            boundaryLine.position.y = -0.08;
+            scene.add(boundaryLine);
+
+            // Create the 4-run boundary line (smaller circle)
+            const fourRadius = 10;
+            const fourGeometry = new THREE.RingGeometry(fourRadius - 0.05, fourRadius, 64);
+            fourLine = new THREE.Mesh(fourGeometry, new THREE.MeshBasicMaterial({
+                color: 0x00FF00,
+                opacity: 0.5,
+                transparent: true,
+                side: THREE.DoubleSide
+            }));
+            fourLine.rotation.x = -Math.PI / 2;
+            fourLine.position.y = -0.085;
+            scene.add(fourLine);
+
+            // Add text labels for boundary lines
+            addBoundaryLabels();
+        }
+
+        function addBoundaryLabels() {
+            // Create a canvas for the 4-run label
+            const canvas4 = document.createElement('canvas');
+            const context4 = canvas4.getContext('2d');
+            canvas4.width = 128;
+            canvas4.height = 64;
+            context4.fillStyle = 'white';
+            context4.font = 'bold 28px Arial';
+            context4.fillText('FOUR', 20, 40);
+
+            // Create texture from canvas
+            const texture4 = new THREE.CanvasTexture(canvas4);
+            const material4 = new THREE.SpriteMaterial({ map: texture4 });
+            const label4 = new THREE.Sprite(material4);
+            label4.position.set(0, 0.1, 10);
+            label4.scale.set(2, 1, 1);
+            scene.add(label4);
+
+            // Create a canvas for the 6-run label
+            const canvas6 = document.createElement('canvas');
+            const context6 = canvas6.getContext('2d');
+            canvas6.width = 128;
+            canvas6.height = 64;
+            context6.fillStyle = 'white';
+            context6.font = 'bold 28px Arial';
+            context6.fillText('SIX', 30, 40);
+
+            // Create texture from canvas
+            const texture6 = new THREE.CanvasTexture(canvas6);
+            const material6 = new THREE.SpriteMaterial({ map: texture6 });
+            const label6 = new THREE.Sprite(material6);
+            label6.position.set(0, 0.1, 14);
+            label6.scale.set(2, 1, 1);
+            scene.add(label6);
         }
 
         function addCreaseLines(bowlerZ, batsmanZ) {
@@ -391,7 +600,92 @@
             const ballMaterial = new THREE.MeshLambertMaterial({ color: 0xDC143C }); // Crimson
             ball = new THREE.Mesh(ballGeometry, ballMaterial);
             ball.position.set(0, 1, -5); // Start far from batsman
+
+            // Initialize ball properties
+            ball.runsCounted = false;
+            ball.boundaryCrossed = false;
+            ball.predictedRuns = undefined;
+            ball.intendedDistance = undefined;
+            ball.reachedTargetDistance = false;
+            ball.stuckCheckTimer = null;
+
             scene.add(ball);
+
+            // Initialize trajectory visualization
+            initTrajectoryVisualization();
+        }
+
+        function initTrajectoryVisualization() {
+            // Create material for trajectory line
+            const trajectoryMaterial = new THREE.LineBasicMaterial({
+                color: 0xFF4500,  // OrangeRed
+                linewidth: 1.5,
+                opacity: 0.7,
+                transparent: true
+            });
+
+            // Create empty geometry for the trajectory line
+            const trajectoryGeometry = new THREE.BufferGeometry();
+
+            // Create line with initial empty geometry
+            trajectoryLine = new THREE.Line(trajectoryGeometry, trajectoryMaterial);
+            scene.add(trajectoryLine);
+
+            // Clear trajectory points array
+            trajectoryPoints = [];
+        }
+
+        function updateTrajectoryVisualization() {
+            if (!showTrajectory || gameState === 'waiting' || gameState === 'gameover') {
+                // Don't show trajectory in these states
+                if (trajectoryLine) trajectoryLine.visible = false;
+                return;
+            }
+
+            // Make trajectory visible
+            if (trajectoryLine) trajectoryLine.visible = true;
+
+            // Add current ball position to trajectory points
+            if (ball) {
+                trajectoryPoints.push(ball.position.clone());
+
+                // Limit the number of points to prevent performance issues
+                if (trajectoryPoints.length > trajectoryMaxPoints) {
+                    trajectoryPoints.shift(); // Remove oldest point
+                }
+
+                // Update trajectory line geometry
+                updateTrajectoryLine();
+            }
+        }
+
+        function updateTrajectoryLine() {
+            if (trajectoryPoints.length < 2 || !trajectoryLine) return; // Need at least 2 points for a line
+
+            // Convert trajectory points to flat array for BufferGeometry
+            const positions = new Float32Array(trajectoryPoints.length * 3);
+
+            for (let i = 0; i < trajectoryPoints.length; i++) {
+                positions[i * 3] = trajectoryPoints[i].x;
+                positions[i * 3 + 1] = trajectoryPoints[i].y;
+                positions[i * 3 + 2] = trajectoryPoints[i].z;
+            }
+
+            // Update the line geometry
+            trajectoryLine.geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            trajectoryLine.geometry.attributes.position.needsUpdate = true;
+        }
+
+        function clearTrajectory() {
+            // Clear trajectory points
+            trajectoryPoints = [];
+
+            // Update trajectory line with empty points
+            if (trajectoryLine) {
+                const positions = new Float32Array(0);
+                trajectoryLine.geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+                trajectoryLine.geometry.attributes.position.needsUpdate = true;
+            }
         }
 
         function createWickets() {
@@ -456,6 +750,24 @@
             // Reset and prepare timing meter
             resetTimingMeter();
             timingMeterActive = true;
+
+            // Clear any previous trajectory
+            clearTrajectory();
+
+            // Reset the ball's boundaryCrossed flag
+            if (ball) {
+                ball.boundaryCrossed = false;
+                ball.runsCounted = false;
+                ball.predictedRuns = undefined;
+                ball.intendedDistance = undefined;
+                ball.reachedTargetDistance = false;
+
+                // Clear any stuck check timer
+                if (ball.stuckCheckTimer) {
+                    clearTimeout(ball.stuckCheckTimer);
+                    ball.stuckCheckTimer = null;
+                }
+            }
 
             // Choose ball type based on probability
             const randomVal = Math.random();
@@ -569,7 +881,7 @@
                 bat.rotation.x = originalRotationX + swingAngle;
                 swingAngle += 0.2;
 
-                // Update hit box during swing
+                // Update hit box during swing animation
                 bat.hitBox.setFromObject(bat);
 
                 // Check if bat hits ball during swing animation
@@ -611,49 +923,11 @@
             }
         }
 
-        function createRunPopup(runs, position) {
-            // Simplified approach - use only DOM elements for run popups
-            // Create a large text element in the center of the screen
-            const runTextDiv = document.createElement('div');
-            runTextDiv.id = `run-popup-${Date.now()}`; // Unique ID
-            runTextDiv.textContent = runs.toString();
-            runTextDiv.style.position = 'absolute';
-            runTextDiv.style.top = '50%';
-            runTextDiv.style.left = '50%';
-            runTextDiv.style.transform = 'translate(-50%, -50%)';
-            runTextDiv.style.fontSize = runs >= 4 ? '120px' : '96px';
-            runTextDiv.style.fontWeight = 'bold';
-            runTextDiv.style.color = '#00FF00'; // Bright green
-            runTextDiv.style.textShadow = '0 0 10px #FFFFFF, 0 0 20px #FFFFFF';
-            runTextDiv.style.fontFamily = 'Arial, sans-serif';
-            runTextDiv.style.opacity = '0';
-            runTextDiv.style.zIndex = '1000'; // Make sure it's on top
-            runTextDiv.style.transition = 'all 1.5s ease-out';
-            document.body.appendChild(runTextDiv);
-
-            console.log(`Created run popup with ID ${runTextDiv.id} for ${runs} runs`);
-
-            // Animate the run popup
-            setTimeout(() => {
-                runTextDiv.style.opacity = '1';
-                runTextDiv.style.transform = 'translate(-50%, -200px) scale(1.5)';
-
-                setTimeout(() => {
-                    runTextDiv.style.opacity = '0';
-
-                    // Remove the element after animation
-                    setTimeout(() => {
-                        if (document.body.contains(runTextDiv)) {
-                            document.body.removeChild(runTextDiv);
-                            console.log(`Removed run popup ${runTextDiv.id}`);
-                        }
-                    }, 1000);
-                }, 1200);
-            }, 100);
-        }
-
         function hitBall() {
             gameState = 'batting';
+
+            // Clear trajectory at hit time to start fresh
+            clearTrajectory();
 
             // Determine shot quality based on timing and position
             let shotQuality = swingTiming;
@@ -671,8 +945,7 @@
             console.log(`Position accuracy: ${positionAccuracy.toFixed(2)}`);
             console.log(`Timing: ${swingTiming.toFixed(2)}`);
 
-            // Use timing to determine runs and trajectory directly - less randomness
-            // This ensures that the ball trajectory matches the runs scored
+            // Use timing to determine runs directly
             const runQuality = swingTiming;
             let newRuns = 0;
 
@@ -688,38 +961,53 @@
             let targetDirectionY = 0.01; // Base elevation
             let targetDirectionZ = -0.1; // Base reverse direction
 
-            // More predictable run scoring based on timing
+            // Calculate maximum distances for each run score
+            // Updated distances as per requirements:
+            // 1 run: 10-20 meters
+            // 2 runs: 20-30 meters
+            // 3 runs: 30-50 meters
+            // 4/6 runs: go to boundary
+            const maxDistances = {
+                0: 5,   // Dot ball - very short distance
+                1: 15,  // Single - 10-20 meter range (using middle value)
+                2: 25,  // Double - 20-30 meter range (using middle value)
+                3: 40,  // Triple - 30-50 meter range (using middle value)
+                4: 10,  // Four - reaches ground boundary (this triggers boundary detection)
+                6: 15   // Six - clears boundary in the air (this triggers boundary detection)
+            };
+
+            // Set runs based on timing quality
             if (runQuality > 0.9) {
                 // Perfect timing - SIX!
                 newRuns = 6;
 
                 // High elevation, long distance
-                targetDirectionY = 0.12;
-                targetDirectionZ = -0.18;
+                targetDirectionY = 0.14;
+                targetDirectionZ = -0.14;
             }
             else if (runQuality > 0.75) {
                 // Great timing - FOUR!
                 newRuns = 4;
 
                 // Lower trajectory but fast horizontal movement
-                targetDirectionY = 0.05;
-                targetDirectionZ = -0.16;
+                targetDirectionY = 0.06;
+                targetDirectionZ = -0.13;
             }
             else if (runQuality > 0.6) {
                 // Good timing - THREE
                 newRuns = 3;
 
-                // Medium trajectory
-                targetDirectionY = 0.04;
-                targetDirectionZ = -0.12;
+                // Medium trajectory, won't reach boundary
+                targetDirectionY = 0.045;
+                targetDirectionZ = -0.09;
             }
             else if (runQuality > 0.45) {
                 // Decent timing - TWO
                 newRuns = 2;
 
-                // Lower trajectory
+                // Lower trajectory, shorter distance
                 targetDirectionY = 0.03;
-                targetDirectionZ = -0.08;
+                targetDirectionZ = -0.065;
             }
             else if (runQuality > 0.3) {
                 // Okay timing - ONE
@@ -727,7 +1015,7 @@
 
                 // Very low trajectory, short distance
                 targetDirectionY = 0.02;
-                targetDirectionZ = -0.05;
+                targetDirectionZ = -0.04;
             }
             else {
                 // Poor timing - DOT ball (no run)
@@ -735,20 +1023,25 @@
 
                 // Weakest hit
                 targetDirectionY = 0.01;
-                targetDirectionZ = -0.03;
+                targetDirectionZ = -0.02;
             }
 
-            // Apply bat position influence on direction
-            const shotPower = 0.05 + (newRuns * 0.02); // More power based on runs
+            // Calculate shot power based on run value and intended distance
+            const intendedDistance = maxDistances[newRuns];
+            const shotPower = intendedDistance / 14; // Scale power by intended distance ratio to boundary
 
-            // Set final target direction
+            // Apply bat position influence on direction
+            targetDirectionX *= (1 + shotPower * 0.5); // Horizontal adjustment based on power
+
+            // Set final target direction with scaled components
             const targetDirection = {
-                x: targetDirectionX,
-                y: targetDirectionY,
-                z: targetDirectionZ * (1 + shotPower) // Scale by power
+                x: targetDirectionX * (0.8 + shotPower * 0.4), // More power means more horizontal control
+                y: targetDirectionY * (0.9 + shotPower * 0.3), // More power means higher trajectory
+                z: targetDirectionZ * (0.8 + shotPower * 0.5)  // More power means more forward distance
             };
 
-            console.log(`Runs: ${newRuns}, Ball direction: x=${targetDirection.x.toFixed(2)}, y=${targetDirection.y.toFixed(2)}, z=${targetDirection.z.toFixed(2)}`);
+            console.log(`Runs: ${newRuns}, Intended distance: ${intendedDistance.toFixed(1)}, Shot power: ${shotPower.toFixed(2)}`);
+            console.log(`Ball direction: x=${targetDirection.x.toFixed(2)}, y=${targetDirection.y.toFixed(2)}, z=${targetDirection.z.toFixed(2)}`);
 
             // Setup smooth transition of ball direction over multiple frames
             let transitionProgress = 0;
@@ -796,22 +1089,77 @@
                 if (ball && ball.material) ball.material.color.set(originalColor);
             }, 300);
 
-            // Create animated run popup (even for 0 runs)
-            createRunPopup(newRuns, ball.position.clone());
+            // Store the predicted runs on the ball object for boundary detection
+            ball.predictedRuns = newRuns;
+            ball.intendedDistance = intendedDistance;
 
-            // Update score - increment by the runs scored
-            score += newRuns;
+            // Display an initial run popup that will be smaller and more subtle
+            // (Only for feedback - score won't be updated until ball stops or crosses boundary)
+            // createRunPopup(newRuns, ball.position.clone(), true);
+        }
 
-            console.log(`Updated total score: ${score}`);
+        function createRunPopup(runs, position, isInitial = false) {
+            // Simplified approach - use only DOM elements for run popups
+            // Create a large text element in the center of the screen
+            const runTextDiv = document.createElement('div');
+            const popupId = `run-popup-${Date.now()}`; // Unique ID
+            runTextDiv.id = popupId;
+            runTextDiv.textContent = runs.toString();
+            runTextDiv.style.position = 'absolute';
+            runTextDiv.style.top = '50%';
+            runTextDiv.style.left = '50%';
+            runTextDiv.style.transform = 'translate(-50%, -50%)';
+            runTextDiv.style.fontSize = runs >= 4 ? '120px' : '96px';
+            runTextDiv.style.fontWeight = 'bold';
 
-            // Update score display immediately
-            document.getElementById('score').innerHTML = `Score: ${score}`;
-
-            // Remove the hit feedback text element if it exists
-            const feedbackElement = document.getElementById('hitFeedback');
-            if (feedbackElement) {
-                document.body.removeChild(feedbackElement);
+            // Different colors based on run count
+            if (runs >= 6) {
+                runTextDiv.style.color = '#FFD700'; // Gold for sixes
+            } else if (runs >= 4) {
+                runTextDiv.style.color = '#00FF00'; // Green for fours
+            } else if (runs > 0) {
+                runTextDiv.style.color = '#FFFFFF'; // White for other runs
+            } else {
+                runTextDiv.style.color = '#AAAAAA'; // Gray for dot balls
             }
+
+            runTextDiv.style.textShadow = '0 0 10px #000000, 0 0 20px #000000';
+            runTextDiv.style.fontFamily = 'Arial, sans-serif';
+            runTextDiv.style.opacity = '0';
+            runTextDiv.style.zIndex = '1000'; // Make sure it's on top
+            runTextDiv.style.transition = 'all 1.5s ease-out';
+            document.body.appendChild(runTextDiv);
+
+            console.log(`Created run popup with ID ${runTextDiv.id} for ${runs} runs`);
+
+            // If this is the initial popup, make it smaller and more subtle
+            if (isInitial) {
+                runTextDiv.style.fontSize = runs >= 4 ? '80px' : '64px';
+                runTextDiv.style.opacity = '0.7';
+            }
+
+            // Animate the run popup
+            setTimeout(() => {
+                runTextDiv.style.opacity = isInitial ? '0.7' : '1';
+                runTextDiv.style.transform = 'translate(-50%, -200px) scale(1.5)';
+
+                setTimeout(() => {
+                    runTextDiv.style.opacity = '0';
+
+                    // Remove the element after animation
+                    setTimeout(() => {
+                        if (document.body.contains(runTextDiv)) {
+                            document.body.removeChild(runTextDiv);
+                            console.log(`Removed run popup ${runTextDiv.id}`);
+                        }
+                    }, 1000);
+                }, isInitial ? 800 : 1200); // Shorter display time for initial popup
+            }, 100);
+
+            // Store the popup ID on the ball for potential updates
+            if (ball) ball.currentPopupId = popupId;
+
+            return popupId;
         }
 
         function updateBallPosition() {
@@ -827,6 +1175,9 @@
 
             // ALWAYS apply gravity regardless of game state
             ballDirection.y -= gravity;
+
+            // Update trajectory visualization
+            updateTrajectoryVisualization();
 
             // Check for bat-ball collision in bowling state
             if (gameState === 'bowling') {
@@ -857,6 +1208,96 @@
                 }
             }
 
+            // Check for boundary crossing and ball stopping during batting
+            if (gameState === 'batting') {
+                // Calculate horizontal distance from origin (center of field)
+                const distance = Math.sqrt(ball.position.x * ball.position.x + ball.position.z * ball.position.z);
+
+                // ONLY check for boundary crossings if this hit was meant to be a 4 or a 6
+                const isBoundaryShot = ball.predictedRuns >= 4;
+
+                // Check for six (ball is above ground level when crossing boundary)
+                if (isBoundaryShot && distance >= boundaryRadius && ball.position.y > 0.5 && !ball.boundaryCrossed) {
+                    console.log("SIX! Ball crossed boundary in the air");
+                    highlightBoundary("six");
+                    ball.boundaryCrossed = true; // Mark as crossed to avoid multiple counts
+
+                    // Only award 6 runs if the shot was meant to be a 6
+                    const finalRuns = ball.predictedRuns === 6 ? 6 : 4;
+                    updateRunsForBoundary(finalRuns);
+                }
+                // Check for four (ball is at ground level when crossing boundary)
+                else if (isBoundaryShot && distance >= 10 && ball.position.y <= 0.5 && !ball.boundaryCrossed) {
+                    console.log("FOUR! Ball crossed boundary along the ground");
+                    highlightBoundary("four");
+                    ball.boundaryCrossed = true; // Mark as crossed to avoid multiple counts
+
+                    // Award 4 runs for ground boundary crossing
+                    updateRunsForBoundary(4);
+                }
+
+                // For non-boundary shots (1,2,3 runs), check if the ball has reached its intended distance
+                else if (!isBoundaryShot && !ball.runsCounted) {
+                    // Updated logic for non-boundary shots with specific distance ranges:
+                    // 1 run: 10-20 meters
+                    // 2 runs: 20-30 meters
+                    // 3 runs: 30-50 meters
+                    let distanceReached = false;
+
+                    // Different check based on runs
+                    switch (ball.predictedRuns) {
+                        case 1:
+                            // For 1 run, check if distance is between 10-20 meters
+                            distanceReached = (distance >= 10 && distance <= 20);
+                            break;
+                        case 2:
+                            // For 2 runs, check if distance is between 20-30 meters
+                            distanceReached = (distance >= 20 && distance <= 30);
+                            break;
+                        case 3:
+                            // For 3 runs, check if distance is between 30-50 meters
+                            distanceReached = (distance >= 30 && distance <= 50);
+                            break;
+                        default:
+                            // For 0 or other runs, use the intended distance
+                            distanceReached = (distance >= ball.intendedDistance);
+                    }
+
+                    // If the ball has reached its intended distance range
+                    if (distanceReached) {
+                        // Award runs and mark as counted
+                        console.log(`Ball reached appropriate distance range for ${ball.predictedRuns} runs: ${distance.toFixed(1)} meters`);
+                        updateRunsForBoundary(ball.predictedRuns);
+                        ball.runsCounted = true;
+
+                        // Rapidly slow down the ball once it has reached its intended distance
+                        ballDirection.x *= 0.7;
+                        ballDirection.z *= 0.7;
+
+                        // Apply additional drag for better stopping behavior
+                        ball.reachedTargetDistance = true;
+                    }
+
+                    // Apply extra drag after reaching target distance
+                    if (ball.reachedTargetDistance) {
+                        ballDirection.x *= 0.95;
+                        ballDirection.z *= 0.95;
+                    }
+                }
+
+                // If ball has stopped completely without crossing boundary or reaching intended distance
+                const isAlmostStopped = Math.abs(ballDirection.x) < 0.001 &&
+                    Math.abs(ballDirection.z) < 0.001 &&
+                    ball.position.y <= 0.1;
+
+                if (isAlmostStopped && !ball.runsCounted && ball.predictedRuns !== undefined) {
+                    // Award predicted runs based on shot quality
+                    console.log("Ball stopped before reaching intended distance");
+                    updateRunsForBoundary(ball.predictedRuns);
+                    ball.runsCounted = true;
+                }
+            }
+
             // Apply swing (only when ball is in flight)
             if (ball.position.y > groundY + 0.1) {
                 // Swing increases as the ball travels closer to the batsman
@@ -877,9 +1318,23 @@
                 // Bounce with energy loss
                 ballDirection.y = -ballDirection.y * bounceCoefficient;
 
-                // Reduce horizontal speed slightly due to friction
-                ballDirection.x *= 0.95;
-                ballDirection.z *= 0.95;
+                // For non-boundary shots, reduce speed more with each bounce
+                if (ball.predictedRuns < 4) {
+                    // Lower run shots slow down more with each bounce
+                    ballDirection.x *= (0.9 - (3 - ball.predictedRuns) * 0.05);
+                    ballDirection.z *= (0.9 - (3 - ball.predictedRuns) * 0.05);
+
+                    // Apply additional drag when the ball is rolling on the ground
+                    // This ensures the ball will eventually come to a stop
+                    if (Math.abs(ballDirection.y) < 0.01) {
+                        ballDirection.x *= 0.97;
+                        ballDirection.z *= 0.97;
+                    }
+                } else {
+                    // Boundary shots maintain more momentum
+                    ballDirection.x *= 0.95;
+                    ballDirection.z *= 0.95;
+                }
 
                 // Add spin effect to bounce direction
                 ballDirection.x += ballSpin;
@@ -894,17 +1349,66 @@
                 }, 50);
             }
 
-            // Ball out of bounds or very slow - reset after delay
-            if (Math.abs(ball.position.x) > 10 ||
-                Math.abs(ball.position.z) > 10 ||
-                (Math.abs(ballDirection.x) < 0.001 &&
-                    Math.abs(ballDirection.y) < 0.001 &&
-                    Math.abs(ballDirection.z) < 0.001 &&
-                    gameState === 'batting')) {
+            // Modified ball reset logic - improve detection for balls that are effectively stopped
+            // Changed boundary logic to allow ball to travel beyond standard play area
+            const maxDistance = 30; // Maximum allowed distance before reset
+            const isEffectivelyStopped = (Math.abs(ballDirection.x) < 0.001 &&
+                Math.abs(ballDirection.z) < 0.001 &&
+                ball.position.y <= 0.12); // Slightly higher threshold to catch balls at ground level
+
+            // Fix for horizon stuck - add a timeout to force reset if the ball is just rolling slowly
+            if (!ball.stuckCheckTimer && gameState === 'batting' &&
+                ball.position.y <= 0.15 && // Only check near ground level
+                Math.abs(ballDirection.x) < 0.01 && Math.abs(ballDirection.z) < 0.01 && // Slow moving
+                Math.abs(ballDirection.x) > 0.0001) { // But not completely stopped
+
+                ball.stuckCheckTimer = setTimeout(() => {
+                    if (gameState === 'batting' && !ball.runsCounted) {
+                        console.log("Ball was moving too slowly - forcing reset");
+                        // Force the ball to stop completely
+                        ballDirection.x = 0;
+                        ballDirection.y = 0;
+                        ballDirection.z = 0;
+                    }
+                }, 2000); // Wait 2 seconds before force stopping a slow-moving ball
+            }
+
+            if (Math.abs(ball.position.x) > maxDistance ||
+                Math.abs(ball.position.z) > maxDistance ||
+                isEffectivelyStopped) {
 
                 if (gameState !== 'resetting' && gameState !== 'bowled' && gameState !== 'gameover') {
                     gameState = 'resetting';
+                    // Clear trajectory when resetting
+                    clearTrajectory();
+
+                    // Clear any stuck check timer
+                    if (ball.stuckCheckTimer) {
+                        clearTimeout(ball.stuckCheckTimer);
+                        ball.stuckCheckTimer = null;
+                    }
+
+                    // Update score before reset if not already done
+                    if (ball && !ball.runsCounted && ball.predictedRuns !== undefined) {
+                        updateRunsForBoundary(ball.predictedRuns);
+                    }
+
                     setTimeout(() => {
+                        // Reset the ball's flags
+                        if (ball) {
+                            ball.boundaryCrossed = false;
+                            ball.runsCounted = false;
+                            ball.predictedRuns = undefined;
+                            ball.intendedDistance = undefined;
+                            ball.reachedTargetDistance = false;
+
+                            // Clear any stuck check timer
+                            if (ball.stuckCheckTimer) {
+                                clearTimeout(ball.stuckCheckTimer);
+                                ball.stuckCheckTimer = null;
+                            }
+                        }
+
                         // Only auto-continue if not bowled out (game over)
                         if (!playerOut) {
                             gameState = 'waiting';
@@ -924,6 +1428,161 @@
                 // Apply a small downward force to ensure the ball falls
                 ballDirection.y -= 0.005;
             }
+        }
+
+        function updateRunsForBoundary(finalRuns) {
+            // If the score has already been updated for this ball, don't do it again
+            if (ball && ball.runsCounted) {
+                console.log("Runs already counted for this ball, skipping duplicate update");
+                return;
+            }
+
+            // Update the score
+            score += finalRuns;
+
+            // Mark as counted to prevent duplicate scoring
+            if (ball) ball.runsCounted = true;
+
+            // Update score display
+            document.getElementById('score').innerHTML = `Score: ${score}`;
+
+            // For boundary runs, only show the boundary text
+            if (finalRuns === 4 || finalRuns === 6) {
+                showBoundaryText(finalRuns);
+            }
+            // For non-boundary runs, only show the run popup
+            else {
+                createRunPopup(finalRuns, ball.position.clone(), false);
+            }
+
+            console.log(`Updated total score to ${score} with ${finalRuns} runs`);
+        }
+
+        function showBoundaryText(runs) {
+            const boundaryText = document.createElement('div');
+            boundaryText.id = 'boundary-text';
+            boundaryText.textContent = runs === 4 ? 'FOUR!' : 'SIX!';
+            boundaryText.style.position = 'absolute';
+            boundaryText.style.top = '40%';
+            boundaryText.style.left = '50%';
+            boundaryText.style.transform = 'translate(-50%, -50%) scale(0.5)';
+            boundaryText.style.fontSize = '150px';
+            boundaryText.style.fontWeight = 'bold';
+            boundaryText.style.color = runs === 4 ? '#00FF00' : '#FFD700';
+            boundaryText.style.textShadow = '0 0 20px rgba(0,0,0,0.8), 0 0 40px rgba(0,0,0,0.5)';
+            boundaryText.style.fontFamily = 'Arial, sans-serif';
+            boundaryText.style.opacity = '0';
+            boundaryText.style.zIndex = '2000';
+            boundaryText.style.transition = 'all 1s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+            boundaryText.style.pointerEvents = 'none';
+            boundaryText.style.whiteSpace = 'nowrap';
+            document.body.appendChild(boundaryText);
+
+            // Add background glow effect
+            const glowEffect = document.createElement('div');
+            glowEffect.style.position = 'absolute';
+            glowEffect.style.top = '0';
+            glowEffect.style.left = '0';
+            glowEffect.style.right = '0';
+            glowEffect.style.bottom = '0';
+            glowEffect.style.backgroundColor = runs === 4 ? 'rgba(0, 255, 0, 0.1)' : 'rgba(255, 215, 0, 0.1)';
+            glowEffect.style.zIndex = '1999';
+            glowEffect.style.opacity = '0';
+            glowEffect.style.transition = 'all 0.8s ease';
+            glowEffect.style.pointerEvents = 'none';
+            document.body.appendChild(glowEffect);
+
+            // Animate the boundary text with a slight delay
+            setTimeout(() => {
+                boundaryText.style.opacity = '1';
+                boundaryText.style.transform = 'translate(-50%, -50%) scale(1.2)';
+                glowEffect.style.opacity = '1';
+
+                // Sound effect for boundary
+                if (typeof Audio !== 'undefined') {
+                    const sound = new Audio();
+                    sound.src = runs === 4 ? 'four_sound.mp3' : 'six_sound.mp3';
+                    sound.volume = 0.4;
+                    sound.play().catch(e => console.log("Sound couldn't play:", e));
+                }
+
+                setTimeout(() => {
+                    boundaryText.style.opacity = '0';
+                    boundaryText.style.transform = 'translate(-50%, -50%) scale(1.5)';
+                    glowEffect.style.opacity = '0';
+
+                    // Remove elements after animation
+                    setTimeout(() => {
+                        if (document.body.contains(boundaryText)) document.body.removeChild(boundaryText);
+                        if (document.body.contains(glowEffect)) document.body.removeChild(glowEffect);
+                    }, 1000);
+                }, 2000);
+            }, 200);
+        }
+
+        function highlightBoundary(type) {
+            // Flash the appropriate boundary line
+            if (type === "four" && fourLine) {
+                const originalOpacity = fourLine.material.opacity;
+                const originalColor = fourLine.material.color.clone();
+
+                fourLine.material.color.set(0x00ff00);
+                fourLine.material.opacity = 1.0;
+
+                setTimeout(() => {
+                    fourLine.material.color.copy(originalColor);
+                    fourLine.material.opacity = originalOpacity;
+                }, 1000);
+            }
+            else if (type === "six" && boundaryLine) {
+                const originalColor = boundaryLine.material.color.clone();
+
+                boundaryLine.material.color.set(0xffd700);
+                boundaryLine.material.transparent = true;
+                boundaryLine.material.opacity = 1.0;
+
+                createBoundaryEffect(type);
+
+                setTimeout(() => {
+                    boundaryLine.material.color.copy(originalColor);
+                    boundaryLine.material.opacity = 0.8;
+                }, 1000);
+            }
+        }
+
+        function createBoundaryEffect(type) {
+            // Create a glowing effect that expands from the boundary line
+            const radius = type === "four" ? 10 : boundaryRadius;
+            const color = type === "four" ? 0x00ff00 : 0xffd700; // Green for four, gold for six
+
+            const glowGeometry = new THREE.RingGeometry(radius - 0.1, radius + 0.1, 64);
+            const glowMaterial = new THREE.MeshBasicMaterial({
+                color: color,
+                opacity: 0.8,
+                transparent: true,
+                side: THREE.DoubleSide
+            });
+
+            const glowRing = new THREE.Mesh(glowGeometry, glowMaterial);
+            glowRing.rotation.x = -Math.PI / 2;
+            glowRing.position.y = -0.07; // Slightly above the field
+            scene.add(glowRing);
+
+            // Animate the glow effect
+            let scale = 1;
+            let opacity = 0.8;
+            const glowAnimation = setInterval(() => {
+                scale += 0.05;
+                opacity -= 0.025;
+
+                glowRing.scale.set(scale, scale, 1);
+                glowMaterial.opacity = opacity;
+
+                if (opacity <= 0) {
+                    clearInterval(glowAnimation);
+                    scene.remove(glowRing);
+                }
+            }, 50);
         }
 
         function updateScoreUI() {
@@ -1107,7 +1766,7 @@
         // Function to show the game over screen
         function showGameOverScreen() {
             // Update final score on game over screen with over details
-            const reason = (ballCount >= 6) ? "Over Complete" : "Bowled Out!";
+            const reason = "Game Over";
             document.getElementById('gameOverTitle').textContent = reason;
             document.getElementById('gameOverScore').textContent = `Final Score: ${score}`;
 
@@ -1144,6 +1803,9 @@
             // Reset ball direction
             ballDirection = { x: 0, y: 0, z: 1 };
 
+            // Clear trajectory
+            clearTrajectory();
+
             // Restore stumps if they were knocked down
             resetStumps();
 
@@ -1159,11 +1821,46 @@
         function resetTimingMeter() {
             const indicator = document.getElementById('timingIndicator');
             const resultText = document.getElementById('timingResult');
+            const earlyZone = document.getElementById('earlyZone');
+            const okayEarlyZone = document.getElementById('okayEarlyZone');
+            const perfectZone = document.getElementById('perfectZone');
+            const okayLateZone = document.getElementById('okayLateZone');
+            const lateZone = document.getElementById('lateZone');
+            const timingMeter = document.getElementById('timingMeter');
 
+            // Reset indicator with animations
             indicator.style.left = '0px';
             indicator.style.opacity = '1';
+            indicator.style.transition = 'left 0.1s ease-out';
+            indicator.style.boxShadow = '0 0 8px rgba(255, 255, 255, 1), 0 0 12px rgba(255, 255, 255, 0.8)';
+            indicator.style.backgroundColor = 'white';
+
+            // Reset result
             resultText.style.opacity = '0';
             resultText.textContent = '';
+            resultText.style.transform = 'translateX(-50%) scale(0.9)';
+            resultText.style.boxShadow = 'none';
+            resultText.style.animation = 'none';
+
+            // Reset zones
+            earlyZone.style.opacity = '0.7';
+            okayEarlyZone.style.opacity = '0.7';
+            perfectZone.style.opacity = '0.7';
+            okayLateZone.style.opacity = '0.7';
+            lateZone.style.opacity = '0.7';
+
+            earlyZone.style.boxShadow = '0 0 8px #ff3232';
+            okayEarlyZone.style.boxShadow = '0 0 5px #ffcc00';
+            perfectZone.style.boxShadow = '0 0 8px #32ff32';
+            okayLateZone.style.boxShadow = '0 0 5px #ffcc00';
+            lateZone.style.boxShadow = '0 0 8px #ff3232';
+
+            // Reset meter
+            timingMeter.style.boxShadow = '0 0 10px rgba(0, 0, 0, 0.5), inset 0 0 5px rgba(0, 0, 0, 0.5)';
+            timingMeter.style.transform = 'translateX(-50%)';
+
+            // Set timing meter as active
+            timingMeterActive = true;
         }
 
         function updateTimingMeter() {
@@ -1171,12 +1868,35 @@
 
             // Calculate position on meter based on ball distance
             // Ball travels from z=-5 to z=3, so normalize to 0-1 range
-            const ballProgress = (ball.position.z + 5) / 8;
-            const meterWidth = document.getElementById('timingMeter').offsetWidth;
+            // We want to get a value that's 0.5 (50% - center) when the ball is at the ideal position
+            // Ideal position is around z=2.5
+            const ballPositionZ = ball.position.z;
+            const ballRangeMin = -5; // Starting position
+            const ballRangeMax = 3;  // Wickets position
+            const idealPosition = 2.5; // The perfect hitting position
+            const totalRange = ballRangeMax - ballRangeMin;
 
-            // Move indicator from left to right as ball approaches
-            // Adjust the multiplier to make it move at a good speed
-            const position = ballProgress * meterWidth;
+            // Calculate a normalized position that will be 0.5 when the ball is at the ideal position
+            // This ensures the indicator is in the middle "green" zone when timing is perfect
+            let normalizedPosition;
+
+            if (ballPositionZ < idealPosition) {
+                // Ball is still approaching - map from 0 to 0.5
+                const distanceFromStart = ballPositionZ - ballRangeMin;
+                const approachProgress = distanceFromStart / (idealPosition - ballRangeMin);
+                normalizedPosition = approachProgress * 0.5; // Map to 0-0.5 range (early)
+            } else {
+                // Ball has passed ideal position - map from 0.5 to 1
+                const distanceFromIdeal = ballPositionZ - idealPosition;
+                const departureProgress = distanceFromIdeal / (ballRangeMax - idealPosition);
+                normalizedPosition = 0.5 + (departureProgress * 0.5); // Map to 0.5-1 range (late)
+            }
+
+            // Clamp the value between 0 and 1
+            normalizedPosition = Math.max(0, Math.min(1, normalizedPosition));
+
+            const meterWidth = document.getElementById('timingMeter').offsetWidth;
+            const position = normalizedPosition * meterWidth;
 
             const indicator = document.getElementById('timingIndicator');
             indicator.style.left = `${position}px`;
@@ -1186,41 +1906,153 @@
             const resultText = document.getElementById('timingResult');
             let result = '';
             let color = '';
+            let scale = 1.0;
 
+            // Get the ball position to determine if it's early or late
+            const ballZ = ball.position.z;
+            const idealZ = 2.5; // Perfect timing position
+            const isTooEarly = ballZ < idealZ - 0.3;
+            const isTooLate = ballZ > idealZ + 0.3;
+
+            // Determine timing quality
             if (timing > 0.9) {
                 result = 'PERFECT!';
-                color = 'gold';
+                color = '#32ff32'; // Green
+                scale = 1.3;
             } else if (timing > 0.75) {
-                result = 'GREAT!';
-                color = '#44cc44';
+                result = isTooEarly ? 'GOOD (EARLY)' : isTooLate ? 'GOOD (LATE)' : 'GOOD!';
+                color = '#ffff32'; // Yellow
+                scale = 1.2;
             } else if (timing > 0.5) {
-                result = 'GOOD';
-                color = '#88cc44';
+                result = isTooEarly ? 'EARLY' : isTooLate ? 'LATE' : 'OKAY';
+                color = '#ffcc32'; // Orange-yellow
+                scale = 1.1;
             } else if (timing > 0.3) {
-                result = 'OKAY';
-                color = '#cccc44';
+                result = isTooEarly ? 'TOO EARLY' : 'TOO LATE';
+                color = '#ff7732'; // Orange
+                scale = 1.0;
             } else {
-                result = 'POOR';
-                color = '#cc4444';
+                result = isTooEarly ? 'VERY EARLY!' : 'VERY LATE!';
+                color = '#ff3232'; // Red
+                scale = 0.9;
             }
+
+            // Apply animations for a more dynamic appearance
+            resultText.style.animation = 'none';
+            // Trigger reflow to restart animation
+            void resultText.offsetWidth;
+            resultText.style.animation = 'resultScale 0.4s forwards';
 
             resultText.textContent = result;
             resultText.style.color = color;
             resultText.style.opacity = '1';
+            resultText.style.transform = `translateX(-50%) scale(${scale})`;
+            resultText.style.boxShadow = `0 0 10px ${color}, 0 0 15px rgba(${getColorRGB(color)}, 0.5)`;
+            resultText.style.textShadow = `0 0 8px ${color}, 2px 2px 3px rgba(0,0,0,0.6)`;
 
-            // Freeze indicator
+            // Highlight the appropriate zone
+            const earlyZone = document.getElementById('earlyZone');
+            const okayEarlyZone = document.getElementById('okayEarlyZone');
+            const perfectZone = document.getElementById('perfectZone');
+            const okayLateZone = document.getElementById('okayLateZone');
+            const lateZone = document.getElementById('lateZone');
+            const timingMeter = document.getElementById('timingMeter');
+
+            // Reset all zones
+            earlyZone.style.opacity = '0.7';
+            okayEarlyZone.style.opacity = '0.7';
+            perfectZone.style.opacity = '0.7';
+            okayLateZone.style.opacity = '0.7';
+            lateZone.style.opacity = '0.7';
+
+            // Add a dramatic effect to meter based on timing
+            if (timing > 0.9) {
+                timingMeter.style.boxShadow = `0 0 15px ${color}, inset 0 0 5px rgba(0, 0, 0, 0.5)`;
+                perfectZone.style.opacity = '1';
+                perfectZone.style.boxShadow = '0 0 15px #32ff32, 0 0 30px rgba(50, 255, 50, 0.5)';
+                // Add subtle scale effect
+                timingMeter.style.transform = 'translateX(-50%) scale(1.05)';
+            } else if (timing > 0.75) {
+                timingMeter.style.boxShadow = `0 0 10px ${color}, inset 0 0 5px rgba(0, 0, 0, 0.5)`;
+                if (isTooEarly) {
+                    okayEarlyZone.style.opacity = '1';
+                    okayEarlyZone.style.boxShadow = '0 0 15px #ffcc00, 0 0 20px rgba(255, 204, 0, 0.3)';
+                } else if (isTooLate) {
+                    okayLateZone.style.opacity = '1';
+                    okayLateZone.style.boxShadow = '0 0 15px #ffcc00, 0 0 20px rgba(255, 204, 0, 0.3)';
+                } else {
+                    perfectZone.style.opacity = '1';
+                    perfectZone.style.boxShadow = '0 0 15px #ffff32, 0 0 20px rgba(255, 255, 50, 0.3)';
+                }
+                timingMeter.style.transform = 'translateX(-50%) scale(1.02)';
+            } else if (timing > 0.3) {
+                if (isTooEarly) {
+                    earlyZone.style.opacity = '1';
+                    earlyZone.style.boxShadow = '0 0 15px #ff7732, 0 0 15px rgba(255, 119, 50, 0.2)';
+                } else {
+                    lateZone.style.opacity = '1';
+                    lateZone.style.boxShadow = '0 0 15px #ff7732, 0 0 15px rgba(255, 119, 50, 0.2)';
+                }
+                timingMeter.style.transform = 'translateX(-50%)';
+            } else {
+                timingMeter.style.boxShadow = '0 0 10px rgba(0, 0, 0, 0.5), inset 0 0 5px rgba(0, 0, 0, 0.5)';
+                if (isTooEarly) {
+                    earlyZone.style.opacity = '1';
+                    earlyZone.style.boxShadow = '0 0 15px #ff3232, 0 0 15px rgba(255, 50, 50, 0.2)';
+                } else {
+                    lateZone.style.opacity = '1';
+                    lateZone.style.boxShadow = '0 0 15px #ff3232, 0 0 15px rgba(255, 50, 50, 0.2)';
+                }
+                timingMeter.style.transform = 'translateX(-50%)';
+            }
+
+            // Freeze indicator with enhanced style
             const indicator = document.getElementById('timingIndicator');
             indicator.style.transition = 'none';
+            indicator.style.boxShadow = `0 0 12px ${color}, 0 0 20px ${color}`;
+            indicator.style.backgroundColor = color;
 
-            // Hide after delay
+            // Hide after delay with smooth transition
             setTimeout(() => {
                 timingMeterActive = false;
                 indicator.style.opacity = '0';
 
+                // Reset styles with smooth transition
+                timingMeter.style.boxShadow = '0 0 10px rgba(0, 0, 0, 0.5), inset 0 0 5px rgba(0, 0, 0, 0.5)';
+                timingMeter.style.transform = 'translateX(-50%)';
+                earlyZone.style.opacity = '0.7';
+                okayEarlyZone.style.opacity = '0.7';
+                perfectZone.style.opacity = '0.7';
+                okayLateZone.style.opacity = '0.7';
+                lateZone.style.opacity = '0.7';
+
+                // Reset box-shadows
+                earlyZone.style.boxShadow = '0 0 8px #ff3232';
+                okayEarlyZone.style.boxShadow = '0 0 5px #ffcc00';
+                perfectZone.style.boxShadow = '0 0 8px #32ff32';
+                okayLateZone.style.boxShadow = '0 0 5px #ffcc00';
+                lateZone.style.boxShadow = '0 0 8px #ff3232';
+
                 setTimeout(() => {
                     resultText.style.opacity = '0';
+                    resultText.style.transform = 'translateX(-50%) scale(0.9)';
                 }, 1000);
             }, 500);
+        }
+
+        // Helper function to convert color to RGB values for shadow effect
+        function getColorRGB(color) {
+            if (color === '#32ff32') return '50, 255, 50';     // Green
+            if (color === '#ffff32') return '255, 255, 50';    // Yellow
+            if (color === '#ffcc32') return '255, 204, 50';    // Orange-yellow
+            if (color === '#ff7732') return '255, 119, 50';    // Orange
+            if (color === '#ff3232') return '255, 50, 50';     // Red
+            if (color === 'gold') return '255, 215, 0';        // Gold (legacy)
+            if (color === '#44cc44') return '68, 204, 68';     // Green (legacy)
+            if (color === '#88cc44') return '136, 204, 68';    // Light green (legacy)
+            if (color === '#cccc44') return '204, 204, 68';    // Yellow (legacy)
+            if (color === '#cc4444') return '204, 68, 68';     // Red (legacy)
+            return '255, 255, 255';
         }
 
         // Start the game
