@@ -315,6 +315,12 @@
 </head>
 
 <body>
+    <!-- Add audio elements -->
+    <audio id="batHitSound" src="./hit.mp3" preload="auto"></audio>
+    <audio id="boundaryFourSound" src="./boundary.mov" preload="auto"></audio>
+    <audio id="boundarySixSound" src="./boundary.mov" preload="auto"></audio>
+    <audio id="wicketSound" src="./bowled.mp3" preload="auto"></audio>
+
     <div id="ui">
         <div id="score">Score: 0</div>
         <div id="ballCount">Balls: 0/6</div>
@@ -1543,6 +1549,9 @@
         function hitBall() {
             gameState = 'batting';
 
+            // Play bat hit sound
+            playSound('batHitSound');
+
             // Clear trajectory at hit time to start fresh
             clearTrajectory();
 
@@ -1869,6 +1878,9 @@
                             hitStumpIndex = 1; // Right stump
                         }
 
+                        // Play the bowled sound
+                        playSound('wicketSound');
+
                         // Animate the stumps falling
                         animateStumpsFalling(hitStumpIndex);
 
@@ -2035,6 +2047,13 @@
                 return;
             }
 
+            // Play boundary sound for 4s and 6s
+            if (finalRuns === 4) {
+                playSound('boundaryFourSound');
+            } else if (finalRuns === 6) {
+                playSound('boundarySixSound');
+            }
+
             // Update the score
             score += finalRuns;
 
@@ -2098,10 +2117,9 @@
 
                 // Sound effect for boundary
                 if (typeof Audio !== 'undefined') {
-                    const sound = new Audio();
-                    sound.src = runs === 4 ? 'four_sound.mp3' : 'six_sound.mp3';
-                    sound.volume = 0.4;
-                    sound.play().catch(e => console.log("Sound couldn't play:", e));
+                    // Use the existing audio elements instead of creating new ones
+                    const soundId = runs === 4 ? 'boundaryFourSound' : 'boundarySixSound';
+                    playSound(soundId);
                 }
 
                 setTimeout(() => {
@@ -2643,6 +2661,27 @@
             if (color === '#cccc44') return '204, 204, 68';    // Yellow (legacy)
             if (color === '#cc4444') return '204, 68, 68';     // Red (legacy)
             return '255, 255, 255';
+        }
+
+        // Add function to play sounds
+        function playSound(soundId) {
+            const sound = document.getElementById(soundId);
+            if (sound) {
+                sound.currentTime = 0; // Reset to start
+
+                // Set appropriate volume levels for different sounds
+                if (soundId === 'batHitSound') {
+                    sound.volume = 0.6; // Bat hit volume
+                } else if (soundId === 'boundaryFourSound') {
+                    sound.volume = 0.5; // Four boundary volume
+                } else if (soundId === 'boundarySixSound') {
+                    sound.volume = 0.5; // Six boundary volume
+                } else {
+                    sound.volume = 0.7; // Default volume
+                }
+
+                sound.play().catch(e => console.log("Error playing sound:", e));
+            }
         }
 
         // Start the game
