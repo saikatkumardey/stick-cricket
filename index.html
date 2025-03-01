@@ -22,14 +22,87 @@
             top: 10px;
             left: 10px;
             color: white;
-            background-color: rgba(0, 0, 0, 0.5);
-            padding: 10px;
-            border-radius: 5px;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 10px;
             pointer-events: none;
+            min-width: 200px;
         }
 
         #score {
-            font-size: 24px;
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        #ballCount {
+            font-size: 18px;
+            margin-bottom: 15px;
+        }
+
+        #ballHistory {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+
+        .ball-indicator {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        /* Make the run indicators slightly smaller */
+        .ball-indicator.runs,
+        .ball-indicator.boundary {
+            width: 26px;
+            height: 26px;
+            font-size: 12px;
+        }
+
+        .ball-indicator.dot {
+            background-color: rgba(200, 200, 200, 0.2);
+            color: #fff;
+        }
+
+        .ball-indicator.runs {
+            background-color: rgba(50, 255, 50, 0.2);
+            color: #32ff32;
+            border-color: rgba(50, 255, 50, 0.5);
+        }
+
+        .ball-indicator.boundary {
+            background-color: rgba(255, 215, 0, 0.2);
+            color: #ffd700;
+            border-color: rgba(255, 215, 0, 0.5);
+        }
+
+        #stats {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.9);
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            padding-top: 10px;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .stat-value {
             font-weight: bold;
         }
 
@@ -311,22 +384,145 @@
                 transform: translateX(-50%) scale(1);
             }
         }
+
+        /* Loading Screen and Start Menu Styles */
+        #loadingScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 3000;
+            transition: opacity 0.5s;
+        }
+
+        #loadingTitle {
+            font-size: 48px;
+            color: #fff;
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px rgba(50, 255, 50, 0.5);
+            animation: glow 1.5s ease-in-out infinite alternate;
+        }
+
+        #loadingSpinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #333;
+            border-top: 5px solid #32ff32;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        #startMenu {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 2500;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.5s, visibility 0.5s;
+        }
+
+        #startMenu.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        #gameTitle {
+            font-size: 72px;
+            color: #32ff32;
+            margin-bottom: 40px;
+            text-shadow: 0 0 20px rgba(50, 255, 50, 0.5);
+            font-weight: bold;
+            letter-spacing: 2px;
+        }
+
+        #startButton,
+        #restartButton {
+            padding: 15px 40px;
+            font-size: 24px;
+            background-color: #32ff32;
+            color: #000;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            font-weight: bold;
+            letter-spacing: 1px;
+            box-shadow: 0 0 15px rgba(50, 255, 50, 0.3);
+        }
+
+        #startButton:hover,
+        #restartButton:hover {
+            background-color: #fff;
+            transform: scale(1.05);
+            box-shadow: 0 0 25px rgba(50, 255, 50, 0.5);
+        }
+
+        @keyframes glow {
+            from {
+                text-shadow: 0 0 5px #32ff32, 0 0 10px #32ff32, 0 0 15px #32ff32;
+            }
+
+            to {
+                text-shadow: 0 0 10px #32ff32, 0 0 20px #32ff32, 0 0 30px #32ff32;
+            }
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
     </style>
 </head>
 
 <body>
     <!-- Add audio elements -->
-    <audio id="batHitSound" src="./hit.mp3" preload="auto"></audio>
-    <audio id="boundaryFourSound" src="./boundary.mov" preload="auto"></audio>
-    <audio id="boundarySixSound" src="./boundary.mov" preload="auto"></audio>
-    <audio id="wicketSound" src="./bowled.mp3" preload="auto"></audio>
+    <audio id="batHitSound" src="./sounds/hit.mp3" preload="auto"></audio>
+    <audio id="boundaryFourSound" src="./sounds/boundary.mov" preload="auto"></audio>
+    <audio id="boundarySixSound" src="./sounds/boundary.mov" preload="auto"></audio>
+    <audio id="wicketSound" src="./sounds/bowled.mp3" preload="auto"></audio>
 
     <div id="ui">
         <div id="score">Score: 0</div>
         <div id="ballCount">Balls: 0/6</div>
+        <div id="ballHistory"></div>
+        <div id="stats">
+            <div class="stat-row">
+                <span class="stat-label">Last Ball Speed:</span>
+                <span class="stat-value" id="ballSpeed">0 km/h</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Shot Timing:</span>
+                <span class="stat-value" id="shotTiming">-</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Ball Distance:</span>
+                <span class="stat-value" id="ballDistance">0m</span>
+            </div>
+        </div>
     </div>
     <div id="instructions">
         <p>Use Mouse to move the bat left/right</p>
+        <p>Move Mouse up/down to adjust bat angle</p>
         <p>Press SPACE to swing the bat</p>
     </div>
     <button id="swingButton">SWING!</button>
@@ -352,6 +548,16 @@
         <div id="gameOverTitle">GAME OVER</div>
         <div id="gameOverScore">Your Score: 0</div>
         <button id="restartButton">PLAY AGAIN</button>
+    </div>
+
+    <div id="loadingScreen">
+        <div id="loadingTitle">STICK CRICKET 3D</div>
+        <div id="loadingSpinner"></div>
+    </div>
+
+    <div id="startMenu">
+        <div id="gameTitle">STICK CRICKET 3D</div>
+        <button id="startButton">Start Game</button>
     </div>
 
     <!-- Load Three.js from CDN -->
@@ -410,6 +616,78 @@
         let ballSpin = 0; // Amount of spin (affects bounce direction)
         let groundY = 0; // Y position of the ground
         let deliveryType = 'fast'; // 'fast', 'spin', 'swing'
+
+        let ballHistory = [];
+        let lastBallStats = {
+            speed: 0,
+            timing: '-',
+            distance: 0
+        };
+
+        // Add these constants for realistic cricket values
+        const MAX_BALL_SPEED = 160; // km/h - fastest bowlers top around 150-160
+        const CRICKET_PITCH_LENGTH = 22; // yards (about 20 meters)
+        const CRICKET_BOUNDARY_RADIUS = 70; // meters (average boundary radius)
+
+        function updateBallHistory(runs) {
+            // Add the ball to history
+            ballHistory.push(runs);
+
+            // Update the ball history display
+            const ballHistoryDiv = document.getElementById('ballHistory');
+            const ballIndicator = document.createElement('div');
+            ballIndicator.className = 'ball-indicator';
+
+            if (runs === 0) {
+                ballIndicator.classList.add('dot');
+                ballIndicator.textContent = '0';
+            } else if (runs === 4 || runs === 6) {
+                ballIndicator.classList.add('boundary');
+                ballIndicator.textContent = runs;
+            } else {
+                ballIndicator.classList.add('runs');
+                ballIndicator.textContent = runs;
+            }
+
+            ballHistoryDiv.appendChild(ballIndicator);
+        }
+
+        function updateStats(speed, timing, distance) {
+            lastBallStats = { speed, timing, distance };
+            console.log("Last Ball timing: " + timing);
+
+            // Calculate realistic ball speed (cap at MAX_BALL_SPEED)
+            const realisticSpeed = Math.min(Math.round(speed * 7), MAX_BALL_SPEED);
+
+            // Calculate realistic distance based on cricket field dimensions
+            // Scale the 3D world coordinates to a realistic cricket field size
+            const realisticDistance = Math.round(distance * (CRICKET_BOUNDARY_RADIUS / 20));
+
+            // Update stats display
+            document.getElementById('ballSpeed').textContent = `${realisticSpeed} km/h`;
+            document.getElementById('shotTiming').textContent = timing;
+            document.getElementById('ballDistance').textContent = `${realisticDistance}m`;
+        }
+
+        function resetGame() {
+
+            // Clear ball history
+            ballHistory = [];
+            document.getElementById('ballHistory').innerHTML = '';
+
+            // Reset stats
+            updateStats(0, '-', 0);
+
+        }
+
+        function getTimingText(timing) {
+            console.log("Timing: " + timing);
+            if (timing > 0.9) return 'Perfect!';
+            if (timing > 0.75) return 'Good';
+            if (timing > 0.5) return 'Okay';
+            if (timing > 0.3) return 'Poor';
+            return 'Miss';
+        }
 
         // Initialize the game
         function init() {
@@ -1077,7 +1355,8 @@
             // Finalize the bat
             bat = batGroup;
             bat.position.set(0, 1, 2.5);
-            bat.rotation.x = Math.PI / 6; // Slight tilt
+            bat.rotation.x = Math.PI / 6; // Default angle (30 degrees) - within our new mouse control range
+            // bat.rotation.z = Math.PI / 6; // Added 45 degree rotation on z-axis for slant
 
             // Create a box for hit detection
             bat.hitBox = new THREE.Box3().setFromObject(bat);
@@ -1486,7 +1765,7 @@
 
             // Animate bat swing with rotation around Y based on bat position (for different shot types)
             let swingAngle = -Math.PI / 3;
-            const originalRotationX = bat.rotation.x;
+            const originalRotationX = bat.rotation.x;  // Use the current bat angle set by mouse
 
             // Different shot types based on horizontal position
             let rotationY = 0;
@@ -1514,10 +1793,10 @@
                     clearInterval(swingAnimation);
                     // Return bat to original position
                     setTimeout(() => {
-                        bat.rotation.x = originalRotationX;
+                        bat.rotation.x = originalRotationX;  // Return to the angle set by mouse
                         bat.rotation.y = 0;
                         // Reset swing timing after swing is complete
-                        swingTiming = 0;
+                        // swingTiming = 0;
                     }, 300);
                 }
             }, 20);
@@ -1989,6 +2268,8 @@
         function resetBall() {
             gameState = 'resetting';
 
+            swingTiming = 0;
+
             // Clear any stuck check timer
             if (ball.stuckCheckTimer) {
                 clearTimeout(ball.stuckCheckTimer);
@@ -2073,6 +2354,18 @@
             }
 
             console.log(`Updated total score to ${score} with ${finalRuns} runs`);
+
+            // Update ball history
+            updateBallHistory(finalRuns);
+
+            // Calculate and update stats
+            const timingText = getTimingText(swingTiming);
+            const ballSpeedKmh = ballSpeed * 50; // Convert to km/h
+            const distanceM = Math.sqrt(
+                ball.position.x * ball.position.x +
+                ball.position.z * ball.position.z
+            );
+            updateStats(ballSpeedKmh, timingText, distanceM);
         }
 
         function showBoundaryText(runs) {
@@ -2199,13 +2492,28 @@
                 scoreElement.innerHTML = `Score: ${score}`;
                 console.log(`Updated score display to: ${score}`);
             }
+
         }
 
         function onMouseMove(event) {
-            // Calculate bat position from mouse
+            // Calculate bat position from mouse horizontal movement
             const x = (event.clientX / window.innerWidth) * 2 - 1;
             batPosition = Math.max(-1, Math.min(1, x));
             bat.position.x = batPosition * 0.5;
+
+            // Calculate bat angle from mouse vertical movement
+            const y = (event.clientY / window.innerHeight) * 2 - 1;
+            // Map y position to a range of angles: higher mouse = more upright bat, lower mouse = more horizontal bat
+            // Limit the range to keep the bat in a playable position
+            const minAngle = Math.PI / 12;  // More upright (15 degrees)
+            const maxAngle = Math.PI / 3;   // More horizontal (60 degrees)
+            const batAngle = minAngle + (maxAngle - minAngle) * ((y + 1) / 2);
+
+            // Apply the new angle to the bat
+            bat.rotation.x = batAngle;
+
+            // Update hit box after changing position and angle
+            bat.hitBox.setFromObject(bat);
         }
 
         function onKeyDown(event) {
@@ -2528,7 +2836,7 @@
                 color = '#32ff32'; // Green
                 scale = 1.3;
             } else if (timing > 0.75) {
-                result = isTooEarly ? 'GOOD (EARLY)' : isTooLate ? 'GOOD (LATE)' : 'GOOD!';
+                result = 'GOOD!';
                 color = '#ffff32'; // Yellow
                 scale = 1.2;
             } else if (timing > 0.5) {
@@ -2684,8 +2992,107 @@
             }
         }
 
-        // Start the game
-        init();
+        // Game state variables
+        let gameInitialized = false;
+        let gameStarted = false;
+
+        // Initialize loading sequence
+        window.addEventListener('load', () => {
+            // Hide game UI initially
+            document.getElementById('ui').style.display = 'none';
+            document.getElementById('instructions').style.display = 'none';
+            document.getElementById('swingButton').style.display = 'none';
+            document.getElementById('timingMeter').style.display = 'none';
+
+            // Show loading screen
+            const loadingScreen = document.getElementById('loadingScreen');
+
+            // Faster loading time (1 second)
+            setTimeout(() => {
+                // Fade out loading screen
+                loadingScreen.style.opacity = '0';
+                setTimeout(() => {
+                    loadingScreen.style.display = 'none';
+                    // Show start menu
+                    document.getElementById('startMenu').classList.add('visible');
+                }, 300);
+            }, 1000);
+        });
+
+        // Start button click handler
+        document.getElementById('startButton').addEventListener('click', () => {
+            // Hide start menu immediately
+            document.getElementById('startMenu').classList.remove('visible');
+
+            // Initialize game if not already initialized
+            if (!gameInitialized) {
+                init();
+                gameInitialized = true;
+            }
+
+            // Show game UI with a slight delay for smooth transition
+            setTimeout(() => {
+                startNewGame();
+            }, 300);
+        });
+
+        function startNewGame() {
+            // Show game UI immediately
+            document.getElementById('ui').style.display = 'block';
+            document.getElementById('instructions').style.display = 'block';
+            document.getElementById('swingButton').style.display = 'block';
+            document.getElementById('timingMeter').style.display = 'block';
+
+            // Reset game state
+            score = 0;
+            ballCount = 0;
+            gameState = 'waiting';
+            playerOut = false;
+            gameOverActive = false;
+            ballHistory = [];
+
+            // Clear ball history display
+            document.getElementById('ballHistory').innerHTML = '';
+
+            // Reset stats
+            updateStats(0, '-', 0);
+
+            // Update UI
+            updateScoreUI();
+            document.getElementById('ballCount').innerHTML = 'Balls: 0/6';
+
+            // Reset ball and other game objects
+            if (ball) {
+                ball.position.set(0, 1, -5);
+                ballDirection = { x: 0, y: 0, z: 1 };
+                ball.boundaryCrossed = false;
+                ball.runsCounted = false;
+                ball.predictedRuns = undefined;
+                ball.intendedDistance = undefined;
+                ball.reachedTargetDistance = false;
+                ball.lowestY = 1;
+                ball.bounceCount = 0;
+                ball.scale.set(1, 1, 1);
+            }
+
+            // Reset stumps if they were knocked
+            resetStumps();
+
+            // Clear any existing trajectory
+            clearTrajectory();
+
+            // Start first bowling delivery after a shorter delay
+            setTimeout(startBowling, 700);
+        }
+
+        // Update restart button to use the same reset logic
+        document.getElementById('restartButton').addEventListener('click', () => {
+            hideGameOverScreen();
+            startNewGame();
+        });
+
+        // Remove immediate init() call
+        // init();
     </script>
 </body>
 
